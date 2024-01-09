@@ -14,31 +14,30 @@ class Charger:
         self.baud_rate = baud_rate
         self.station_id = station_id
 
-    def read_and_save_to_json(self):
+    def read_data(ser):
         data = {}
-        oslo = tz.gettz('Europe/Oslo')
-        now = datetime.now(oslo)
-        timestamp = now.strftime('%Y%m%dT%H%M%S%z')
+        collecting = False
 
-        if not os.path.exists(self.savepath):
-            os.makedirs(self.savepath)
+        while True:
+            line = ser.readline().decode('latin-1').strip()
 
-        # Bygger filstien på en plattformuavhengig måte
-        filename = os.path.join(self.savepath, f"{timestamp}.json")
+            # Sjekk for 'Checksum' som indikerer start/slutt på en data blokk
+            if 'Checksum' in line:
+                if collecting:
+                    # Returnerer data ved slutten av en komplett blokk
+                    return data
+                else:
+                    # Starter innsamling for en ny blokk
+                    collecting = True
+                    data = {}
+                    continue
 
-        try:
-            with Serial(self.port, self.baud_rate, timeout=1) as ser:
-                logging.info(f"Reading")
-                while ser.in_waiting:
-                    line = ser.readline().decode('latin-1').strip()
-                    if ":" in line:
-                        key, value = line.split(":")
-                        data[key] = value
-                        logging.info(f"Reading data from charger: {data}")
-                        print(data)
+            if collecting:
+                # Behandler linjer innenfor en data blokk
+                parts = line.split(maxsplit=1)
+                if len(parts) == 2:
+                    key, value = parts
+                    data[key.strip()] = value.strip()
 
-            with open(filename, "w") as f:
-                json.dump(data, f)
-                logging.info(f"Read data and saved to {filename}")
-        except Exception as e:
-            logging.error(f"Error reading from charger: {e}")
+        # Returnerer en tom dictionary som en sikkerhetsmekanisme
+        return data
