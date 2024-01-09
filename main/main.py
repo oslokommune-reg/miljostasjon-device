@@ -1,5 +1,5 @@
 from module.charger import Charger
-#from module.loadlogger import LoadLogger
+from module.loadlogger import Loadlogger
 import schedule
 import time
 import logging
@@ -17,13 +17,15 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 handler.setFormatter(formatter)
 root.addHandler(handler)
 
-port = 'COM12'
-baud_rate = 19200
+charger_port = 'COM12'
+charger_baud_rate = 19200
+loadlogger_port = 'COM12'
+loadlogger_baud_rate = 19200
 station_id = '1'
-savepath = "data"
 
-charger = Charger(savepath=savepath, port=port, baud_rate=baud_rate, station_id=station_id)
 
+charger = Charger(port=charger_port, baud_rate=charger_baud_rate)
+loadlogger = Loadlogger(port=loadlogger_port, baud_rate=loadlogger_baud_rate)
 
 def scheduled_upload(savepath):
     #upload_to_lambda(savepath)

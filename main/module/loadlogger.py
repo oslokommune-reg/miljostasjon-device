@@ -1,4 +1,4 @@
-class LoadLogger:
+class Loadlogger:
     def __init__(self, savepath):
         self.savepath = savepath
 
