@@ -1,10 +1,12 @@
 import json
-from datetime import datetime
-from dateutil import tz
-import logging
-from serial import Serial 
 import os
-logging.getLogger().addHandler(logging.StreamHandler())
+from datetime import datetime
+
+from dateutil import tz
+from serial import Serial
+from utils.logger import setup_custom_logger
+
+logger = setup_custom_logger(__name__)
 
 
 class Charger:
@@ -19,10 +21,10 @@ class Charger:
         collecting = False
 
         while True:
-            line = ser.readline().decode('latin-1').strip()
+            line = ser.readline().decode("latin-1").strip()
 
             # Sjekk for 'Checksum' som indikerer start/slutt på en data blokk
-            if 'Checksum' in line:
+            if "Checksum" in line:
                 if collecting:
                     # Returnerer data ved slutten av en komplett blokk
                     return data
