@@ -4,7 +4,9 @@ import requests
 
 
 class ApiGatewayConnector:
-    def __init__(self, base_url, api_key):
+    def __init__(
+        self, base_url: str, api_key: str, station_id: str, add_prefix: bool = True
+    ) -> None:
         """
         Docstring documentation
         """
@@ -25,10 +27,13 @@ class ApiGatewayConnector:
             headers={"x-api-key": self.api_key, "Content-Type": "application/json"},
         )
 
-    def get_data(self, endpoint: str, query: str):
+    def get_data(self, endpoint: str, query: str) -> dict:
         response = requests.get(
             self.base_url + f"/{endpoint}?{query}",
             headers={"x-api-key": self.api_key},
         ).json()
 
         return response
+
+    def _add_data_prefix(self):
+        pass
