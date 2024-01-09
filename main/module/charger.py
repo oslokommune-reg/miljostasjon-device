@@ -1,10 +1,12 @@
 import json
-from datetime import datetime
-from dateutil import tz
-import logging
-from serial import Serial 
 import os
-logging.getLogger().addHandler(logging.StreamHandler())
+from datetime import datetime
+
+from dateutil import tz
+from serial import Serial
+from utils.logger import setup_custom_logger
+
+logger = setup_custom_logger(__name__)
 
 
 class Charger:
@@ -16,9 +18,9 @@ class Charger:
 
     def read_and_save_to_json(self):
         data = {}
-        oslo = tz.gettz('Europe/Oslo')
+        oslo = tz.gettz("Europe/Oslo")
         now = datetime.now(oslo)
-        timestamp = now.strftime('%Y%m%dT%H%M%S%z')
+        timestamp = now.strftime("%Y%m%dT%H%M%S%z")
 
         if not os.path.exists(self.savepath):
             os.makedirs(self.savepath)
@@ -30,7 +32,7 @@ class Charger:
             with Serial(self.port, self.baud_rate, timeout=1) as ser:
                 logging.info(f"Reading")
                 while ser.in_waiting:
-                    line = ser.readline().decode('latin-1').strip()
+                    line = ser.readline().decode("latin-1").strip()
                     if ":" in line:
                         key, value = line.split(":")
                         data[key] = value
