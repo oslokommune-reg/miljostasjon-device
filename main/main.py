@@ -7,36 +7,30 @@ from module.aws.apigateway import ApiGatewayConnector
 
 logger = setup_custom_logger(__name__)
 
-charger_port = 'COM12'
+charger_port = '/dev/ttyUSB0'
 charger_baud_rate = 19200
-loadlogger_port = 'COM14'
+loadlogger_port = '/dev/ttyUSB1'
 loadlogger_baud_rate = 19200
-station_id = '1'
-base_url = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXX'
-api_key = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXX'         
+base_url = "https://n7qaee0st5.execute-api.eu-west-1.amazonaws.com/dev"
+api_key = "3rveWx1PZyaVDY99hmU159qDGtRaUlhx5lR8oqz5"
+payload_parent_keys = {"stationId": "1"}
 
 charger = Charger(port=charger_port, baud_rate=charger_baud_rate)
 loadlogger = Loadlogger(port=loadlogger_port, baud_rate=loadlogger_baud_rate)
-#apiGateway = ApiGatewayConnector(base_url = base_url, api_key = api_key, station_id=station_id)
+apigateway = ApiGatewayConnector(base_url = base_url, api_key = api_key, payload_parent_keys=payload_parent_keys)
 
 def read_and_upload_data():
     logger.info("Reading data from charger...")
     data = charger.read_data()
     logger.info("Uploading data from charger...")
-    #upload = apiGateway.post_dict(data, "charger")
+    apigateway.post_dict(endpoint="charger", data=data)
 
     logger.info("Reading data from loadlogger...")
     data = loadlogger.read_data()
     logger.info("Uploading data from loadlogger...")
-    #upload = apiGateway.post_dict(data, "charger")
+    apigateway.post_dict(endpoint="loadlogger", data=data)
 
 
-
-    # logger.info("Reading data from loadlogger...")
-    # data
-    # logger.info("Uploading data to loadlogger...")
-    # loadlogger.upload_data(data, station_id)
-    # logger.info("Data uploaded successfully.")
     
    
 
