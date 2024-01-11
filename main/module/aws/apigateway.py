@@ -12,12 +12,7 @@ logger = setup_custom_logger(__name__)
 
 
 class ApiGatewayConnector:
-    def __init__(
-        self,
-        base_url: str,
-        api_key: str,
-        payload_parent_keys: dict = {},
-    ) -> None:
+    def __init__(self, base_url: str, api_key: str) -> None:
         """
         Initializes the API Gateway Connector.
 
@@ -29,9 +24,10 @@ class ApiGatewayConnector:
 
         self.base_url = base_url
         self.api_key = api_key
-        self.payload_parent_keys = payload_parent_keys
 
-    def post_dict(self, endpoint: str, data: dict) -> dict:
+    def post_dict(
+        self, endpoint: str, data: dict, payload_parent_keys: dict = {}
+    ) -> dict:
         """
         Performs a POST request with a dictionary. Data is automatically serialzied to JSON.
 
@@ -43,7 +39,7 @@ class ApiGatewayConnector:
         dict: The response from the server
         """
 
-        payload = self._construct_payload()
+        payload = self._construct_payload(payload_parent_keys)
         payload["data"] = data
 
         logger.info(f"Performing POST request to {endpoint} with payload {payload}")
@@ -53,9 +49,7 @@ class ApiGatewayConnector:
             headers={"x-api-key": self.api_key, "Content-Type": "application/json"},
         )
 
-        logger.info(
-            f"Response status code: {response.status_code}, response text: {response.text}"
-        )
+        logger.info(f"Response status code: {response.status_code}")
 
         return response
 
@@ -82,9 +76,7 @@ class ApiGatewayConnector:
             headers={"x-api-key": self.api_key, "Content-Type": "application/json"},
         )
 
-        logger.info(
-            f"Response status code: {response.status_code}, response text: {response.text}"
-        )
+        logger.info(f"Response status code: {response.status_code}")
 
         return response
 
@@ -108,15 +100,13 @@ class ApiGatewayConnector:
             headers={"x-api-key": self.api_key},
         )
 
-        logger.info(
-            f"Response status code: {response.status_code}, response text: {response.text}"
-        )
+        logger.info(f"Response status code: {response.status_code}")
 
         data = response.json()
 
         return data
 
-    def _construct_payload(self):
+    def _construct_payload(self, payload_parent_keys):
         """
         Adds a timestamp and station ID to the request data.
 
@@ -127,8 +117,8 @@ class ApiGatewayConnector:
         dict: The modified data with added timestamp and station ID.
         """
         payload = {}
-        if self.payload_parent_keys:
-            for key, value in self.payload_parent_keys.items():
+        if payload_parent_keys:
+            for key, value in payload_parent_keys.items():
                 payload[key] = value
 
         # Get local timestamp with timezone

@@ -11,7 +11,7 @@ COPY ./main /usr/src/app
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Define environment variable
-ENV NAME dev
+ENV NAME prod
 
 # Run app.py when the container launches
-# CMD ["python", "main.py"]
+CMD ["python", "main.py"]

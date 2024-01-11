@@ -1,0 +1,61 @@
+services:
+  # prod:
+  #   build:
+  #     context: ./
+  #     dockerfile: prod.Dockerfile
+  #   container_name: prod
+  #   restart: always
+  #   volumes:
+  #     - ~/prod_persistent_storage:/container_storage
+  #   devices:
+  #     - /dev/ttyUSB0:/dev/ttyUSB0
+  #     - /dev/ttyUSB1:/dev/ttyUSB1
+  #     - /dev/ttyUSB2:/dev/ttyUSB2
+  #     - /dev/ttyUSB3:/dev/ttyUSB3
+    
+  #   env_file:
+  #     - prod.env
+
+  dev:
+    build:
+      context: ./
+      dockerfile: dev.Dockerfile
+    container_name: dev
+    restart: always
+    volumes:
+      - ~/dev_persistent_storage:/container_storage
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
+      - /dev/ttyUSB1:/dev/ttyUSB1
+      
+    env_file:
+      - dev.env
+    environment:
+      - DEVICE_ID=${DEVICE_ID}
+    command: python3 main.py
+    
+  # portainer:
+  #   image: portainer/portainer-ce:latest
+  #   ports:
+  #     - 9443:9443
+  #   volumes:
+  #     - data:/data
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #   restart: unless-stopped
+# volumes:
+  # data:
+
+
+  # portainer_edge_agent:
+  #   image: portainer/agent
+  #   container_name: portainer_edge_agent
+  #   restart: always
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #     - /var/lib/docker/volumes:/var/lib/docker/volumes
+  #   environment:
+  #     EDGE: '1'
+  #     EDGE_ID: [EDGE_ID]
+  #     EDGE_KEY: [EDGE_KEY]
+  #   ports:
+  #     - "8000:8000"
