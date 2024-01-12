@@ -26,8 +26,8 @@ charger = Device(
 
 loadlogger = Device(
     device_name="loadlogger",
-    port=app_config.config["charger"]["usb_port"],
-    baudrate=app_config.config["charger"]["baud_rate"],
+    port=app_config.config["loadlogger"]["usb_port"],
+    baudrate=app_config.config["loadlogger"]["baud_rate"],
     timeout=3,
     serial_start=app_config.config["loadlogger"]["serial_start"],
     serial_end=app_config.config["loadlogger"]["serial_end"],
