@@ -1,20 +1,18 @@
 services:
   # prod:
-  #   build:
-  #     context: ./
-  #     dockerfile: prod.Dockerfile
-  #   container_name: prod
-  #   restart: always
-  #   volumes:
-  #     - ~/prod_persistent_storage:/container_storage
-  #   devices:
-  #     - /dev/ttyUSB0:/dev/ttyUSB0
-  #     - /dev/ttyUSB1:/dev/ttyUSB1
-  #     - /dev/ttyUSB2:/dev/ttyUSB2
-  #     - /dev/ttyUSB3:/dev/ttyUSB3
-    
-  #   env_file:
-  #     - prod.env
+      # build:
+      #   context: ./
+      #   dockerfile: prod.Dockerfile
+      # container_name: prod
+      # restart: always
+      # privileged: true
+      # volumes:
+      #   - ~/prod_persistent_storage:/container_storage
+      # environment:
+      #   - DEVICE_ID=${DEVICE_ID}
+      #   - API_GATEWAY_MILJOSTASJON_KEY = ${PROD_DEV_API_GATEWAY_MILJOSTASJON_KEY}
+      #   - API_GATEWAY_MILJOSTASJON_URL = ${PROD_DEV_API_GATEWAY_MILJOSTASJON_URL}
+      # command: python3 main.py
 
   dev:
     build:
@@ -22,16 +20,13 @@ services:
       dockerfile: dev.Dockerfile
     container_name: dev
     restart: always
+    privileged: true
     volumes:
       - ~/dev_persistent_storage:/container_storage
-    devices:
-      - /dev/ttyUSB0:/dev/ttyUSB0
-      - /dev/ttyUSB1:/dev/ttyUSB1
-      
-    env_file:
-      - dev.env
     environment:
       - DEVICE_ID=${DEVICE_ID}
+      - API_GATEWAY_MILJOSTASJON_KEY=${DEV_API_GATEWAY_MILJOSTASJON_KEY}
+      - API_GATEWAY_MILJOSTASJON_URL=${DEV_API_GATEWAY_MILJOSTASJON_URL}
     command: python3 main.py
     
   # portainer:
