@@ -24,21 +24,31 @@ sudo ./scripts/change_keyboard_layout.sh
 sudo ./scripts/install_teamviewer.sh
 
 # Auto register into teamviewer account
-sudo ./scripts/configure_teamviewer.sh
+# ./scripts/configure_teamviewer.sh
 
-# Add startup.sh to desktop entry 
-# Allows run on boot in dedicated terminal window
-USERNAME=$(logname)
-echo "[Desktop Entry]" > /home/$USERNAME/StartupScript.desktop
-echo "Type=Application" >> /home/$USERNAME/StartupScript.desktop
-echo "Name=StartupScript" >> /home/$USERNAME/StartupScript.desktop
-echo "Exec=lxterminal -e '/home/$USERNAME/scripts/startup.sh'" >> /home/$USERNAME/StartupScript.desktop
+# Add startup.sh to boot
+USER=$(logname)
+SERVICE_NAME="startup"
+export SCRIPT_PATH="/home/${USER}/scripts/startup.sh"
+cat <<EOF | sudo -E tee /etc/systemd/system/$SERVICE_NAME.service
+[Unit]
+Description=Startup procedure
 
-# Ensure the Autostart Directory Exists
-mkdir -p /home/$USERNAME/.config/autostart/
+[Service]
+WorkingDirectory=/home/miljostasjon/scripts
+ExecStart=$SCRIPT_PATH
+StandardOutput=syslog
+StandardError=syslog
 
-# Move the Desktop Entry to the Autostart Directory
-mv /home/$USERNAME/StartupScript.desktop /home/$USERNAME/.config/autostart/
+[Install]
+WantedBy=graphical.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable $SERVICE_NAME.service
+sudo systemctl start $SERVICE_NAME.service
+
+# (crontab -l 2>/dev/null; echo "@reboot /home/scripts/startup.sh") | crontab -
 
 # Add daily reboot
 (crontab -l 2>/dev/null; echo "0 2 * * * /sbin/shutdown -r now") | crontab -
@@ -52,5 +62,5 @@ fi
 # Install Docker Compose
 sudo apt-get install docker-compose-plugin -y
 
-# Run startup script
-gnome-terminal -- bash -c "sudo ./scripts/startup.sh; exec bash"
+# Reboot
+sudo reboot now

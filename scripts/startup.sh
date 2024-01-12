@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# Set dir to local dir
+SCRIPT_DIR=$(dirname "$0")
+echo "$PWD"
+
+# Immediately go to parent dir
+cd ..
+
 # Update and upgrade the system
 sudo apt-get update
 sudo apt-get upgrade -y
@@ -91,6 +98,6 @@ clone_or_pull $REPO_NAME $REPO_URL
 cd $REPO_NAME 
 
 # Remove all unused docker images
-docker image prune -a -f
+sudo docker image prune -a -f
 
-docker compose up --build --remove-orphans --force-recreate
+sudo -E docker compose up --build --remove-orphans --force-recreate
