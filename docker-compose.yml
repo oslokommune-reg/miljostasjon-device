@@ -29,16 +29,16 @@ services:
       - API_GATEWAY_MILJOSTASJON_URL=${DEV_API_GATEWAY_MILJOSTASJON_URL}
     command: python3 main.py
     
-  # portainer:
-  #   image: portainer/portainer-ce:latest
-  #   ports:
-  #     - 9443:9443
-  #   volumes:
-  #     - data:/data
-  #     - /var/run/docker.sock:/var/run/docker.sock
-  #   restart: unless-stopped
-# volumes:
-  # data:
+  portainer:
+    image: portainer/portainer-ce:latest
+    ports:
+      - 9443:9443
+    volumes:
+      - data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+volumes:
+  data:
 
 
   # portainer_edge_agent:
