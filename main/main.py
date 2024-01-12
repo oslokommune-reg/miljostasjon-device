@@ -41,13 +41,13 @@ def read_and_send_data():
     apigateway.post_dict(
         endpoint=charger.device_name,
         data=charger.data,
-        payload_parent_keys={"stationId": os.getenv("DEVICE_ID")},
+        payload_parent_keys={"stationId": app_config.config["device"]["stationid"]},
     )
 
     apigateway.post_dict(
         endpoint=loadlogger.device_name,
         data=loadlogger.data,
-        payload_parent_keys={"stationId": os.getenv("DEVICE_ID")},
+        payload_parent_keys={"stationId": app_config.config["device"]["stationid"]},
     )
 
 
