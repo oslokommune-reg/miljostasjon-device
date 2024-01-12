@@ -13,13 +13,45 @@ echo python3 --version
 # Install pip
 sudo apt install python3-pip -y
 
-# Path to the config file
-CONFIG_FILE="config.sh"
+# Function to check if TeamViewer daemon is active
+is_teamviewer_daemon_active() {
+    if systemctl is-active --quiet teamviewerd; then
+        echo "TeamViewer daemon is already active."
+        return 0
+    else
+        echo "TeamViewer daemon is not active."
+        return 1
+    fi
+}
 
-# Load config file variables
+# Start TeamViewer daemon if not active
+if ! is_teamviewer_daemon_active; then
+    echo "Starting TeamViewer daemon..."
+    sudo teamviewer daemon enable
+    sudo teamviewer daemon start
+    echo "TeamViewer daemon started."
+else
+    echo "No need to start TeamViewer daemon. It's already running."
+fi
+
 echo "Loading configuration variables"
-chmod u+x ./config.sh
-. ./config.sh
+
+config_path="./scripts/config.sh"
+fallback_config_path="./config.sh"
+
+if [ -f "$config_path" ]; then
+    # If the config file exists in the scripts directory, use it
+    . "$config_path"
+    echo "Loaded configuration from $config_path"
+elif [ -f "$fallback_config_path" ]; then
+    # If the config file exists in the current directory, use it
+    . "$fallback_config_path"
+    echo "Loaded configuration from $fallback_config_path"
+else
+    # If neither file exists, print an error message
+    echo "Error: Configuration file not found in either path."
+    exit 1
+fi
 
 # Load secrets for each environment
 set_env_variables() {
