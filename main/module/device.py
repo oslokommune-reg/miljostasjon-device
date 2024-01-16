@@ -41,8 +41,11 @@ class Device:
                 data = {}
 
             if collecting:
+                if "checksum" in line.lower():
+                    # Do not collect checksum lines
+                    continue
+
                 # logger.info("Collectig :)")
-                # Splitter linjen i nøkkel og verdi
                 parts = line.split(maxsplit=1)
                 if len(parts) == 2:
                     key, value = parts
