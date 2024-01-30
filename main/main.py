@@ -43,13 +43,7 @@ def read_and_send_data():
     data["charger"] = charger.data
     data["loadlogger"] = loadlogger.data
 
-    # Post to endpoint for combined data
-    apigateway.post_dict(
-        endpoint="receive",
-        payload_parent_keys={"stationId": app_config.config["device"]["stationid"]},
-    )
-
-    # TODO: Delete these when verified that above function works as intended
+    # TODO: Delete these when verified that below function works as intended
     apigateway.post_dict(
         endpoint=charger.device_name,
         data=charger.data,
@@ -59,6 +53,12 @@ def read_and_send_data():
     apigateway.post_dict(
         endpoint=loadlogger.device_name,
         data=loadlogger.data,
+        payload_parent_keys={"stationId": app_config.config["device"]["stationid"]},
+    )
+
+    # Post to endpoint for combined data
+    apigateway.post_dict(
+        endpoint="receive",
         payload_parent_keys={"stationId": app_config.config["device"]["stationid"]},
     )
 
