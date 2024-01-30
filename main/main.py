@@ -59,6 +59,7 @@ def read_and_send_data():
     # Post to endpoint for combined data
     apigateway.post_dict(
         endpoint="receive",
+        data=data,
         payload_parent_keys={"stationId": app_config.config["device"]["stationid"]},
     )
 
