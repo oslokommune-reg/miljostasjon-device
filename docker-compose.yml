@@ -1,18 +1,18 @@
 services:
   # prod:
-      # build:
-      #   context: ./
-      #   dockerfile: prod.Dockerfile
-      # container_name: prod
-      # restart: always
-      # privileged: true
-      # volumes:
-      #   - ~/prod_persistent_storage:/container_storage
-      # environment:
-      #   - DEVICE_ID=${DEVICE_ID}
-      #   - API_GATEWAY_MILJOSTASJON_KEY = ${PROD_DEV_API_GATEWAY_MILJOSTASJON_KEY}
-      #   - API_GATEWAY_MILJOSTASJON_URL = ${PROD_DEV_API_GATEWAY_MILJOSTASJON_URL}
-      # command: python3 main.py
+  #   build:
+  #     context: ./
+  #     dockerfile: prod.Dockerfile
+  #   container_name: dev
+  #   restart: always
+  #   privileged: true
+  #   volumes:
+  #     - ~/prod_persistent_storage:/container_storage
+  #   environment:
+  #     - DEVICE_ID=${DEVICE_ID}
+  #     - API_GATEWAY_MILJOSTASJON_KEY=${PROD_API_GATEWAY_MILJOSTASJON_KEY}
+  #     - API_GATEWAY_MILJOSTASJON_URL=${PROD_API_GATEWAY_MILJOSTASJON_URL}
+  #   command: python3 main.py
 
   dev:
     build:
