@@ -6,6 +6,9 @@ services:
   #   container_name: dev
   #   restart: always
   #   privileged: true
+  #  logging:
+  #    options:
+  #      max-size: 50m
   #   volumes:
   #     - ~/prod_persistent_storage:/container_storage
   #   environment:
@@ -21,6 +24,9 @@ services:
     container_name: dev
     restart: always
     privileged: true
+    logging:
+      options:
+        max-size: 50m
     volumes:
       - ~/dev_persistent_storage:/container_storage
     environment:
