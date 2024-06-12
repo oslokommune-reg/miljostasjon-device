@@ -44,12 +44,16 @@ def read_and_send_data():
     data["loadlogger"] = loadlogger.data
 
     # Post to endpoint for combined data
-    apigateway.post_dict(
-        endpoint="receive",
-        data=data,
-        payload_parent_keys={"stationId": app_config.config["device"]["stationid"]},
-    )
+    try:
+        apigateway.post_dict(
+            endpoint="receive",
+            data=data,
+            payload_parent_keys={"stationId": app_config.config["device"]["stationid"]},
+        )
 
+    except Exception as e:
+        logger.info("Error sending data: {e}. \n \n Retrying in 30 minutes or until reboot...")
+        time.sleep(1800)
 
 if __name__ == "__main__":
     try:
