@@ -37,7 +37,6 @@ loadlogger = Device(
 
 
 def read_and_send_data():
-
     charger.read_data()
     loadlogger.read_data()
 
@@ -54,9 +53,12 @@ def read_and_send_data():
             payload_parent_keys={"deviceId": os.getenv("DEVICE_ID")},
         )
 
-    except Exception as e:
-        logger.info("Error sending data: {e}. \n \n Retrying in 30 minutes or until reboot...")
+    except Exception:
+        logger.info(
+            "Error sending data: {e}. \n \n Retrying in 30 minutes or until reboot..."
+        )
         time.sleep(1800)
+
 
 if __name__ == "__main__":
     try:
