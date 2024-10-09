@@ -15,6 +15,8 @@ apigateway = ApiGatewayConnector(
     base_url=app_config.base_url, api_key=app_config.api_key
 )
 
+
+# TODO: Add functinality for assuming the correct ttyUSB port based on expected input form the device
 charger = Device(
     device_name="charger",
     port=app_config.config["charger"]["usb_port"],
@@ -35,6 +37,7 @@ loadlogger = Device(
 
 
 def read_and_send_data():
+
     charger.read_data()
     loadlogger.read_data()
 
@@ -48,7 +51,7 @@ def read_and_send_data():
         apigateway.post_dict(
             endpoint="receive",
             data=data,
-            payload_parent_keys={"stationId": app_config.config["device"]["stationid"]},
+            payload_parent_keys={"deviceId": os.getenv("DEVICE_ID")},
         )
 
     except Exception as e:

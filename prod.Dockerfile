@@ -13,5 +13,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Define environment variable
 ENV NAME prod
 
+# Set the timezone
+ENV TZ=Europe/Oslo
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
 # Run app.py when the container launches
-CMD ["python", "main.py"]
+# CMD ["python", "main.py"]
