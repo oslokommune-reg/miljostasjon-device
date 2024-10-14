@@ -28,6 +28,9 @@ class Device:
         # Detect port
         self.port = self.find_port()
 
+        # Set serial
+        self.ser = Serial(self.port, self.baudrate, timeout=self.timeout)
+
         # Log device config
         self.logger.info(f"Device: {self.device_name} {self.baudrate} {self.timeout}")
 
@@ -61,6 +64,10 @@ class Device:
         try:
             ser = Serial(port, self.baudrate, timeout=self.timeout)
             
+            # Check if port is already open
+            if not ser.isOpen():
+                ser.open()
+
             start_time = time.time()
 
             # Read serial port for 10 seconds
@@ -68,7 +75,7 @@ class Device:
             while time.time() - start_time < 10:
                 line = ser.readline().decode("latin-1").strip()
                 lines += line
-                
+
             # Close the port
             ser.close()
 
@@ -86,18 +93,23 @@ class Device:
     def read_data(self):
         # Start with empty data
         data = {}
-        try:
-            self.ser = Serial(self.port, self.baudrate, timeout=self.timeout)
-            self.logger.info("Serial port accessed.")
-        except Exception as e:
-            self.logger.error(f"Error loading serial: {e}")
-            raise e
+        # try:
+        #     self.ser = Serial(self.port, self.baudrate, timeout=self.timeout)
+        #     self.logger.info("Serial port accessed.")
+        # except Exception as e:
+        #     self.logger.error(f"Error loading serial: {e}")
+        #     raise e
+
+        # Check if port is already open
+        if not self.ser.isOpen():
+            self.ser.open()
 
         # Set initial state of collecting to True
         reading = True
         collecting = False
         while reading:
             line = self.ser.readline().decode("latin-1").strip()
+
             self.logger.info(f"Received line: {line}")
 
             if self.serial_start in line:
