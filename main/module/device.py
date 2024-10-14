@@ -68,11 +68,12 @@ class Device:
             while time.time() - start_time < 10:
                 line = ser.readline().decode("latin-1").strip()
                 lines += line
-
-            self.logger.info(lines)
-
+                
             # Close the port
             ser.close()
+
+            # Allow port to close before continuing, by sleeping 5 seconds
+            time.sleep(5)
 
             # Check if lines are in data from serial 
             if self.serial_start in lines and self.serial_end in lines:
