@@ -112,9 +112,7 @@ class Device:
         collecting = False
         while reading:
             line = self.ser.readline().decode("latin-1").strip()
-
-            self.logger.info(f"Received line: {line}")
-
+            
             if self.serial_start in line:
                 collecting = True
                 data = {}
