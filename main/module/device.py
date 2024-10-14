@@ -7,15 +7,39 @@ from module.utils.logger import setup_custom_logger
 
 
 class Device:
-    def __init__(self, device_name, port, baudrate, timeout, serial_start, serial_end):
+    def __init__(self, device_name, baudrate, timeout, serial_start, serial_end, vendor_id = None, product_id = None):
         self.device_name = device_name
-        self.port = port
+        self.port = self.find_port()
         self.baudrate = baudrate
         self.timeout = timeout
         self.serial_start = serial_start
         self.serial_end = serial_end
         self.logger = setup_custom_logger(device_name)
         self.logger.info(f"Device: {port} {baudrate} {timeout}")
+
+    def find_port(self):
+        if platform.system() == 'Linux':
+            return self.find_port_linux()
+        else:
+            return self.find_port_general()
+
+    def find_port_linux(self):
+        import glob
+        ports = glob.glob('/dev/ttyUSB*') + glob.glob('/dev/ttyACM*')
+        if ports:
+            return ports[0]  # Return the first found port
+        else:
+            raise Exception("No USB TTY port found")
+
+    def find_port_general(self):
+        ports = list(list_ports.comports())
+        for port in ports:
+            if self.vendor_id and self.product_id:
+                if port.vid == self.vendor_id and port.pid == self.product_id:
+                    return port.device
+            elif self.device_name.lower() in port.description.lower():
+                return port.device
+        raise Exception(f"No matching port found for {self.device_name}")
 
     def read_data(self):
         # Start with empty data

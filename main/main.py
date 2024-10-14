@@ -3,13 +3,10 @@ import time
 
 import schedule
 from module.aws.apigateway import ApiGatewayConnector
-from module.config import AppConfig
 from module.device import Device
 from module.utils.logger import setup_custom_logger
 
 logger = setup_custom_logger(__name__)
-
-app_config = AppConfig()
 
 apigateway = ApiGatewayConnector(
     base_url=app_config.base_url, api_key=app_config.api_key
@@ -20,19 +17,19 @@ apigateway = ApiGatewayConnector(
 charger = Device(
     device_name="charger",
     port=app_config.config["charger"]["usb_port"],
-    baudrate=app_config.config["charger"]["baud_rate"],
+    baudrate=19200,
     timeout=3,
-    serial_start=app_config.config["charger"]["serial_start"],
-    serial_end=app_config.config["charger"]["serial_end"],
+    serial_start="PID",
+    serial_end="HSDS",
 )
 
 loadlogger = Device(
     device_name="loadlogger",
     port=app_config.config["loadlogger"]["usb_port"],
-    baudrate=app_config.config["loadlogger"]["baud_rate"],
+    baudrate=19200,
     timeout=3,
-    serial_start=app_config.config["loadlogger"]["serial_start"],
-    serial_end=app_config.config["loadlogger"]["serial_end"],
+    serial_start="PID",
+    serial_end="H18",
 )
 
 
