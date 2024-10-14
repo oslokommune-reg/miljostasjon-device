@@ -68,9 +68,9 @@ class Device:
                     line = ser.readline().decode("latin-1").strip()
                     lines += line
 
-                # Check if lines are in data from serial 
-                if self.serial_start in lines and self.serial_end in lines:
-                    return True
+            # Check if lines are in data from serial 
+            if self.serial_start in lines and self.serial_end in lines:
+                return True
             return False
         except Exception as e:
             self.logger.error(f"Error verifying port {port}: {e}")
