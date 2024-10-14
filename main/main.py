@@ -73,7 +73,6 @@ if __name__ == "__main__":
         )
 
         while True:
-            logger.info("Triggered by schedule...")
             schedule.run_pending()
             time.sleep(1)
 
