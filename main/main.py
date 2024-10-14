@@ -58,7 +58,7 @@ def read_and_send_data():
 
 if __name__ == "__main__":
     try:
-        schedule.every(os.getenv("SCHEDULE_SECONDS")).seconds.do(
+        schedule.every(int(os.getenv("SCHEDULE_SECONDS", 300))).seconds.do(
             read_and_send_data
         )
 
