@@ -41,11 +41,10 @@ class Device:
         self.logger.info(f"Detected potential ports: {potential_ports}")
         for port in potential_ports:
             if self.verify_port(port):
-                self.port = port
                 self.logger.info(
                     f"Device {self.device_name} found on port: {self.port}"
                 )
-                return
+                return port
         raise Exception(f"No matching port found for {self.device_name}")
 
     def list_potential_ports(self):
@@ -87,7 +86,9 @@ class Device:
             # Check if lines are in data from serial 
             if self.serial_start in lines and self.serial_end in lines:
                 return True
-            return False
+
+            else:
+                return False
         except Exception as e:
             self.logger.error(f"Error verifying port {port}: {e}")
             return False
