@@ -9,7 +9,8 @@ from module.utils.logger import setup_custom_logger
 logger = setup_custom_logger(__name__)
 
 apigateway = ApiGatewayConnector(
-    base_url=os.getenv("API_GATEWAY_MILJOSTASJON_URL"), api_key=os.getenv("API_GATEWAY_MILJOSTASJON_KEY")
+    base_url=os.getenv("API_GATEWAY_MILJOSTASJON_URL"),
+    api_key=os.getenv("API_GATEWAY_MILJOSTASJON_KEY"),
 )
 
 

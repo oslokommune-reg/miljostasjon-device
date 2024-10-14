@@ -7,7 +7,16 @@ from module.utils.logger import setup_custom_logger
 
 
 class Device:
-    def __init__(self, device_name, baudrate, timeout, serial_start, serial_end, vendor_id = None, product_id = None):
+    def __init__(
+        self,
+        device_name,
+        baudrate,
+        timeout,
+        serial_start,
+        serial_end,
+        vendor_id=None,
+        product_id=None,
+    ):
         self.device_name = device_name
         self.port = self.find_port()
         self.baudrate = baudrate
