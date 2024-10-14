@@ -59,14 +59,18 @@ class Device:
 
     def verify_port(self, port):
         try:
-            with Serial(port, self.baudrate, timeout=self.timeout) as ser:
-                start_time = time.time()
+            ser = Serial(port, self.baudrate, timeout=self.timeout)
+            ser.open()
+            
+            start_time = time.time()
 
-                # Read serial port for 10 seconds
-                lines = ''
-                while time.time() - start_time < 10:
-                    line = ser.readline().decode("latin-1").strip()
-                    lines += line
+            # Read serial port for 10 seconds
+            lines = ''
+            while time.time() - start_time < 10:
+                line = ser.readline().decode("latin-1").strip()
+                lines += line
+
+            ser.close()
 
             # Check if lines are in data from serial 
             if self.serial_start in lines and self.serial_end in lines:
