@@ -33,7 +33,7 @@ class Device:
 
     def find_port(self):
         potential_ports = self.list_potential_ports()
-        self.logger.info("Detected potential ports: {potential_ports}")
+        self.logger.info(f"Detected potential ports: {potential_ports}")
         for port in potential_ports:
             if self.verify_port(port):
                 self.port = port
@@ -61,8 +61,9 @@ class Device:
         try:
             with Serial(port, self.baudrate, timeout=self.timeout) as ser:
                 start_time = time.time()
-                while time.time() - start_time < 5:  # Try for 5 seconds
+                while time.time() - start_time < 5
                     line = ser.readline().decode("latin-1").strip()
+                    self.logger.info(line)
                     if self.serial_start in line and self.serial_end in line:
                         return True
             return False
