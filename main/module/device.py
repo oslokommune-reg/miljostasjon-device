@@ -69,7 +69,7 @@ class Device:
                     lines += line
 
                 # Check if lines are in data from serial 
-                self.logger.info("Saved lines: {lines}")
+                self.logger.info(f"Saved lines: {lines}")
                 if self.serial_start in lines and self.serial_end in lines:
                     return True
             return False
