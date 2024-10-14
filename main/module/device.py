@@ -31,19 +31,25 @@ class Device:
         for port in potential_ports:
             if self.verify_port(port):
                 self.port = port
-                self.logger.info(f"Device {self.device_name} found on port: {self.port}")
+                self.logger.info(
+                    f"Device {self.device_name} found on port: {self.port}"
+                )
                 return
         raise Exception(f"No matching port found for {self.device_name}")
 
     def list_potential_ports(self):
-        if platform.system() == 'Linux':
+        if platform.system() == "Linux":
             import glob
-            return glob.glob('/dev/ttyUSB*') + glob.glob('/dev/ttyACM*')
+
+            return glob.glob("/dev/ttyUSB*") + glob.glob("/dev/ttyACM*")
         else:
             ports = list(list_ports.comports())
-            return [port.device for port in ports if 
-                    (self.vendor_id is None or port.vid == self.vendor_id) and 
-                    (self.product_id is None or port.pid == self.product_id)]
+            return [
+                port.device
+                for port in ports
+                if (self.vendor_id is None or port.vid == self.vendor_id)
+                and (self.product_id is None or port.pid == self.product_id)
+            ]
 
     def verify_port(self, port):
         try:
