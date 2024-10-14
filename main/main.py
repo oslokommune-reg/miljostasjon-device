@@ -58,7 +58,7 @@ def read_and_send_data():
 
 if __name__ == "__main__":
     try:
-        schedule.every(app_config.config["device"]["readfrequency_seconds"]).seconds.do(
+        schedule.every(os.getenv("SCHEDULE_SECONDS")).seconds.do(
             read_and_send_data
         )
 
