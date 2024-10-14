@@ -58,11 +58,12 @@ def read_and_send_data():
 
 if __name__ == "__main__":
     try:
+
+        read_and_send_data()
+
         schedule.every(int(os.getenv("SCHEDULE_SECONDS", 300))).seconds.do(
             read_and_send_data
         )
-
-        read_and_send_data()
         while True:
             schedule.run_pending()
             time.sleep(1)

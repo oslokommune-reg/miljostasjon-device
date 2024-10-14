@@ -70,6 +70,7 @@ class Device:
                 line = ser.readline().decode("latin-1").strip()
                 lines += line
 
+            # Close the port
             ser.close()
 
             # Check if lines are in data from serial 
