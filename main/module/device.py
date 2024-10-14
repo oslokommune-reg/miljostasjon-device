@@ -42,7 +42,7 @@ class Device:
         for port in potential_ports:
             if self.verify_port(port):
                 self.logger.info(
-                    f"Device {self.device_name} found on port: {self.port}"
+                    f"Device {self.device_name} found on port: {port}"
                 )
                 return port
         raise Exception(f"No matching port found for {self.device_name}")
