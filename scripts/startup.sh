@@ -97,6 +97,9 @@ function clone_or_pull() {
 clone_or_pull $REPO_NAME $REPO_URL
 cd $REPO_NAME 
 
+# Clean cache
+sudo apt-get clean
+
 # Remove all unused docker images
 sudo docker image prune -a -f
 
