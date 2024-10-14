@@ -70,6 +70,8 @@ class Device:
                 line = ser.readline().decode("latin-1").strip()
                 lines += line
 
+            self.logger.info(lines)
+
             # Close the port
             ser.close()
 
