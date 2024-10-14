@@ -29,10 +29,12 @@ class Device:
         self.port = self.find_port()
 
         # Set serial
-        self.ser = Serial(self.port, self.baudrate, timeout=self.timeout)
+        if self.port:
+            # Instantiate serial with detected port
+            self.ser = Serial(self.port, self.baudrate, timeout=self.timeout)
 
-        # Log device config
-        self.logger.info(f"Device: {self.device_name} {self.baudrate} {self.timeout}")
+            # Log device config
+            self.logger.info(f"Device: {self.device_name} {self.baudrate} {self.timeout}")
 
     def find_port(self):
         potential_ports = self.list_potential_ports()
