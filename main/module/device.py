@@ -61,7 +61,7 @@ class Device:
         try:
             with Serial(port, self.baudrate, timeout=self.timeout) as ser:
                 start_time = time.time()
-                while time.time() - start_time < 5
+                while time.time() - start_time < 5:
                     line = ser.readline().decode("latin-1").strip()
                     self.logger.info(line)
                     if self.serial_start in line and self.serial_end in line:
