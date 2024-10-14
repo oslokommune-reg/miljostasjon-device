@@ -60,10 +60,6 @@ class Device:
     def verify_port(self, port):
         try:
             ser = Serial(port, self.baudrate, timeout=self.timeout)
-
-            # Check if serial port is closed (which it should)
-            if not ser.isOpen():
-                ser.open()
             
             start_time = time.time()
 
