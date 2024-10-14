@@ -29,7 +29,7 @@ class Device:
         self.port = self.find_port()
 
         # Log device config
-        self.logger.info(f"Device: {port} {baudrate} {timeout}")
+        self.logger.info(f"Device: {self.device_name} {self.port} {self.baudrate} {self.timeout}")
 
     def find_port(self):
         potential_ports = self.list_potential_ports()
