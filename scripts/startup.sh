@@ -103,4 +103,7 @@ sudo apt-get clean
 # Remove all unused docker images
 sudo docker image prune -a -f
 
+# Update all systemctl daemon in case any changes have been made (testing)
+sudo systemctl daemon-reload
+
 sudo -E docker compose up --build --remove-orphans --force-recreate
