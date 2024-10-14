@@ -7,7 +7,16 @@ from module.utils.logger import setup_custom_logger
 
 
 class Device:
-    def __init__(self, device_name, baudrate, timeout, serial_start, serial_end, vendor_id = None, product_id = None):
+    def __init__(
+        self,
+        device_name,
+        baudrate,
+        timeout,
+        serial_start,
+        serial_end,
+        vendor_id=None,
+        product_id=None,
+    ):
         self.device_name = device_name
         self.port = self.find_port()
         self.baudrate = baudrate
@@ -18,14 +27,15 @@ class Device:
         self.logger.info(f"Device: {port} {baudrate} {timeout}")
 
     def find_port(self):
-        if platform.system() == 'Linux':
+        if platform.system() == "Linux":
             return self.find_port_linux()
         else:
             return self.find_port_general()
 
     def find_port_linux(self):
         import glob
-        ports = glob.glob('/dev/ttyUSB*') + glob.glob('/dev/ttyACM*')
+
+        ports = glob.glob("/dev/ttyUSB*") + glob.glob("/dev/ttyACM*")
         if ports:
             return ports[0]  # Return the first found port
         else:
