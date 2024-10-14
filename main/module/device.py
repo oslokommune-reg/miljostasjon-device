@@ -29,7 +29,7 @@ class Device:
         self.port = self.find_port()
 
         # Log device config
-        self.logger.info(f"Device: {self.device_name} {self.port} {self.baudrate} {self.timeout}")
+        self.logger.info(f"Device: {self.device_name} {self.baudrate} {self.timeout}")
 
     def find_port(self):
         potential_ports = self.list_potential_ports()
@@ -69,7 +69,6 @@ class Device:
                     lines += line
 
                 # Check if lines are in data from serial 
-                self.logger.info(f"Saved lines: {lines}")
                 if self.serial_start in lines and self.serial_end in lines:
                     return True
             return False
