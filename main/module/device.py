@@ -20,15 +20,20 @@ class Device:
     ):
         self.device_name = device_name
         self.logger = setup_custom_logger(device_name)
-        self.port = self.find_port()
         self.baudrate = baudrate
         self.timeout = timeout
         self.serial_start = serial_start
         self.serial_end = serial_end
+
+        # Detect port
+        self.port = self.find_port()
+
+        # Log device config
         self.logger.info(f"Device: {port} {baudrate} {timeout}")
 
     def find_port(self):
         potential_ports = self.list_potential_ports()
+        self.logger.info("Detected potential ports: {potential_ports}")
         for port in potential_ports:
             if self.verify_port(port):
                 self.port = port
