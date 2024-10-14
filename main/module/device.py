@@ -19,12 +19,12 @@ class Device:
         product_id=None,
     ):
         self.device_name = device_name
+        self.logger = setup_custom_logger(device_name)
         self.port = self.find_port()
         self.baudrate = baudrate
         self.timeout = timeout
         self.serial_start = serial_start
         self.serial_end = serial_end
-        self.logger = setup_custom_logger(device_name)
         self.logger.info(f"Device: {port} {baudrate} {timeout}")
 
     def find_port(self):
