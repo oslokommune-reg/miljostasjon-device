@@ -63,7 +63,7 @@ class Device:
                 start_time = time.time()
                 while time.time() - start_time < 5:
                     line = ser.readline().decode("latin-1").strip()
-                    self.logger.info(line)
+                    self.logger.info(f"Read line for device {self.device_name}": line)
                     if self.serial_start in line and self.serial_end in line:
                         return True
             return False
