@@ -3,34 +3,32 @@ import time
 
 import schedule
 from module.aws.apigateway import ApiGatewayConnector
-from module.config import AppConfig
 from module.device import Device
 from module.utils.logger import setup_custom_logger
 
 logger = setup_custom_logger(__name__)
 
-app_config = AppConfig()
-
 apigateway = ApiGatewayConnector(
-    base_url=app_config.base_url, api_key=app_config.api_key
+    base_url=os.getenv("API_GATEWAY_MILJOSTASJON_URL"),
+    api_key=os.getenv("API_GATEWAY_MILJOSTASJON_KEY"),
 )
 
+
+# TODO: Add functinality for assuming the correct ttyUSB port based on expected input form the device
 charger = Device(
     device_name="charger",
-    port=app_config.config["charger"]["usb_port"],
-    baudrate=app_config.config["charger"]["baud_rate"],
+    baudrate=19200,
     timeout=3,
-    serial_start=app_config.config["charger"]["serial_start"],
-    serial_end=app_config.config["charger"]["serial_end"],
+    serial_start="PID",
+    serial_end="HSDS",
 )
 
 loadlogger = Device(
     device_name="loadlogger",
-    port=app_config.config["loadlogger"]["usb_port"],
-    baudrate=app_config.config["loadlogger"]["baud_rate"],
+    baudrate=19200,
     timeout=3,
-    serial_start=app_config.config["loadlogger"]["serial_start"],
-    serial_end=app_config.config["loadlogger"]["serial_end"],
+    serial_start="PID",
+    serial_end="H18",
 )
 
 
@@ -48,12 +46,15 @@ def read_and_send_data():
         apigateway.post_dict(
             endpoint="receive",
             data=data,
-            payload_parent_keys={"stationId": app_config.config["device"]["stationid"]},
+            payload_parent_keys={"deviceId": os.getenv("DEVICE_ID")},
         )
 
-    except Exception as e:
-        logger.info("Error sending data: {e}. \n \n Retrying in 30 minutes or until reboot...")
+    except Exception:
+        logger.info(
+            "Error sending data: {e}. \n \n Retrying in 30 minutes or until reboot..."
+        )
         time.sleep(1800)
+
 
 if __name__ == "__main__":
     try:
