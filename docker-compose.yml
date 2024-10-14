@@ -3,14 +3,14 @@ services:
   #   build:
   #     context: ./
   #     dockerfile: prod.Dockerfile
-  #   container_name: dev
+  #   container_name: prod
   #   restart: always
   #   privileged: true
-  #  logging:
-  #    options:
-  #      max-size: 50m
+  #   logging:
+  #     options:
+  #       max-size: 10m
   #   volumes:
-  #     - ~/prod_persistent_storage:/container_storage
+  #     - ~/dev_persistent_storage:/container_storage
   #   environment:
   #     - DEVICE_ID=${DEVICE_ID}
   #     - API_GATEWAY_MILJOSTASJON_KEY=${PROD_API_GATEWAY_MILJOSTASJON_KEY}

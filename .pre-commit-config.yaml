@@ -1,0 +1,24 @@
+repos:
+
+  # Format .sql and jinja
+  - repo: https://github.com/tconbeer/sqlfmt
+    rev: v0.18.0
+    hooks:
+      - id: sqlfmt
+        language_version: python
+        additional_dependencies: [".[jinjafmt]"]
+
+    # Format Python
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.1
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+
+  # Format Terraform code
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.92.2
+    hooks:
+      - id: terraform_fmt
