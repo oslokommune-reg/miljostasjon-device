@@ -9,14 +9,13 @@ from module.utils.logger import setup_custom_logger
 logger = setup_custom_logger(__name__)
 
 apigateway = ApiGatewayConnector(
-    base_url=app_config.base_url, api_key=app_config.api_key
+    base_url=os.getenv("API_GATEWAY_MILJOSTASJON_URL"), api_key=os.getenv("API_GATEWAY_MILJOSTASJON_KEY")
 )
 
 
 # TODO: Add functinality for assuming the correct ttyUSB port based on expected input form the device
 charger = Device(
     device_name="charger",
-    port=app_config.config["charger"]["usb_port"],
     baudrate=19200,
     timeout=3,
     serial_start="PID",
@@ -25,7 +24,6 @@ charger = Device(
 
 loadlogger = Device(
     device_name="loadlogger",
-    port=app_config.config["loadlogger"]["usb_port"],
     baudrate=19200,
     timeout=3,
     serial_start="PID",
