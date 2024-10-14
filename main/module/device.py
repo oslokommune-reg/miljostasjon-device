@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import platform
 
 from serial import Serial
 from tzlocal import get_localzone
