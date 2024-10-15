@@ -14,7 +14,6 @@ apigateway = ApiGatewayConnector(
 )
 
 
-# TODO: Add functinality for assuming the correct ttyUSB port based on expected input form the device
 charger = Device(
     device_name="charger",
     baudrate=19200,
@@ -49,6 +48,9 @@ def read_and_send_data():
             payload_parent_keys={"deviceId": os.getenv("DEVICE_ID")},
         )
 
+        # TODO: Add method for collecting data every N seconds and storing it to system storage
+        # TODO: Remove file stored on system if API response is 200
+
     except Exception:
         logger.info(
             "Error sending data: {e}. \n \n Retrying in 30 minutes or until reboot..."
@@ -58,11 +60,16 @@ def read_and_send_data():
 
 if __name__ == "__main__":
     try:
-        schedule.every(app_config.config["device"]["readfrequency_seconds"]).seconds.do(
+        # Run once on startup
+        logger.info("Commencing initial run...")
+        read_and_send_data()
+        logger.info("Initial run completed.")
+
+        logger.info("Commencing schedule...")
+        schedule.every(int(os.getenv("SCHEDULE_SECONDS", 300))).seconds.do(
             read_and_send_data
         )
 
-        read_and_send_data()
         while True:
             schedule.run_pending()
             time.sleep(1)

@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
-
+import platform
+import time
 from serial import Serial
 from tzlocal import get_localzone
 
@@ -18,23 +19,32 @@ class Device:
         product_id=None,
     ):
         self.device_name = device_name
-        self.port = self.find_port()
+        self.logger = setup_custom_logger(device_name)
         self.baudrate = baudrate
         self.timeout = timeout
         self.serial_start = serial_start
         self.serial_end = serial_end
-        self.logger = setup_custom_logger(device_name)
-        self.logger.info(f"Device: {port} {baudrate} {timeout}")
+
+        # Detect port
+        self.port = self.find_port()
+
+        # Set serial
+        if self.port:
+            # Instantiate serial with detected port
+            self.ser = Serial(self.port, self.baudrate, timeout=self.timeout)
+
+            # Log device config
+            self.logger.info(
+                f"Device: {self.device_name} {self.baudrate} {self.timeout}"
+            )
 
     def find_port(self):
         potential_ports = self.list_potential_ports()
+        self.logger.info(f"Detected potential ports: {potential_ports}")
         for port in potential_ports:
             if self.verify_port(port):
-                self.port = port
-                self.logger.info(
-                    f"Device {self.device_name} found on port: {self.port}"
-                )
-                return
+                self.logger.info(f"Device {self.device_name} found on port: {port}")
+                return port
         raise Exception(f"No matching port found for {self.device_name}")
 
     def list_potential_ports(self):
@@ -53,13 +63,32 @@ class Device:
 
     def verify_port(self, port):
         try:
-            with Serial(port, self.baudrate, timeout=self.timeout) as ser:
-                start_time = time.time()
-                while time.time() - start_time < 5:  # Try for 5 seconds
-                    line = ser.readline().decode("latin-1").strip()
-                    if self.serial_start in line and self.serial_end in line:
-                        return True
-            return False
+            ser = Serial(port, self.baudrate, timeout=self.timeout)
+
+            # Check if port is already open
+            if not ser.isOpen():
+                ser.open()
+
+            start_time = time.time()
+
+            # Read serial port for 10 seconds
+            lines = ""
+            while time.time() - start_time < 10:
+                line = ser.readline().decode("latin-1").strip()
+                lines += line
+
+            # Close the port
+            ser.close()
+
+            # Allow port to close before continuing, by sleeping 5 seconds
+            time.sleep(5)
+
+            # Check if lines are in data from serial
+            if self.serial_start in lines and self.serial_end in lines:
+                return True
+
+            else:
+                return False
         except Exception as e:
             self.logger.error(f"Error verifying port {port}: {e}")
             return False
@@ -67,19 +96,22 @@ class Device:
     def read_data(self):
         # Start with empty data
         data = {}
-        try:
-            self.ser = Serial(self.port, self.baudrate, timeout=self.timeout)
-            self.logger.info("Serial port accessed.")
-        except Exception as e:
-            self.logger.error(f"Error loading serial: {e}")
-            raise e
+        # try:
+        #     self.ser = Serial(self.port, self.baudrate, timeout=self.timeout)
+        #     self.logger.info("Serial port accessed.")
+        # except Exception as e:
+        #     self.logger.error(f"Error loading serial: {e}")
+        #     raise e
+
+        # Check if port is already open
+        if not self.ser.isOpen():
+            self.ser.open()
 
         # Set initial state of collecting to True
         reading = True
         collecting = False
         while reading:
             line = self.ser.readline().decode("latin-1").strip()
-            self.logger.info(f"Received line: {line}")
 
             if self.serial_start in line:
                 collecting = True

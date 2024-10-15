@@ -1,51 +1,53 @@
 services:
-  # prod:
-  #   build:
-  #     context: ./
-  #     dockerfile: prod.Dockerfile
-  #   container_name: prod
-  #   restart: always
-  #   privileged: true
-  #   logging:
-  #     options:
-  #       max-size: 10m
-  #   volumes:
-  #     - ~/dev_persistent_storage:/container_storage
-  #   environment:
-  #     - DEVICE_ID=${DEVICE_ID}
-  #     - API_GATEWAY_MILJOSTASJON_KEY=${PROD_API_GATEWAY_MILJOSTASJON_KEY}
-  #     - API_GATEWAY_MILJOSTASJON_URL=${PROD_API_GATEWAY_MILJOSTASJON_URL}
-  #   command: python3 main.py
-
-  dev:
+  prod:
     build:
       context: ./
-      dockerfile: dev.Dockerfile
-    container_name: dev
+      dockerfile: prod.Dockerfile
+    container_name: prod
     restart: always
     privileged: true
     logging:
       options:
-        max-size: 50m
+        max-size: 20m
     volumes:
       - ~/dev_persistent_storage:/container_storage
     environment:
       - DEVICE_ID=${DEVICE_ID}
-      - API_GATEWAY_MILJOSTASJON_KEY=${DEV_API_GATEWAY_MILJOSTASJON_KEY}
-      - API_GATEWAY_MILJOSTASJON_URL=${DEV_API_GATEWAY_MILJOSTASJON_URL}
+      - API_GATEWAY_MILJOSTASJON_KEY=${PROD_API_GATEWAY_MILJOSTASJON_KEY}
+      - API_GATEWAY_MILJOSTASJON_URL=${PROD_API_GATEWAY_MILJOSTASJON_URL}
+      - SCHEDULE_SECONDS=300
     command: python3 main.py
+
+  # dev:
+  #   build:
+  #     context: ./
+  #     dockerfile: dev.Dockerfile
+  #   container_name: dev
+  #   restart: always
+  #   privileged: true
+  #   logging:
+  #     options:
+  #       max-size: 50m
+  #   volumes:
+  #     - ~/dev_persistent_storage:/container_storage
+  #   environment:
+  #     - DEVICE_ID=${DEVICE_ID}
+  #     - API_GATEWAY_MILJOSTASJON_KEY=${DEV_API_GATEWAY_MILJOSTASJON_KEY}
+  #     - API_GATEWAY_MILJOSTASJON_URL=${DEV_API_GATEWAY_MILJOSTASJON_URL}
+  #     - SCHEDULE_SECONDS=300
+  #   command: python3 main.py
     
-  portainer:
-    image: portainer/portainer-ce:latest
-    ports:
-      - 9443:9443
-    logging:
-      options:
-        max-size: 10m
-    volumes:
-      - data:/data
-      - /var/run/docker.sock:/var/run/docker.sock
-    restart: unless-stopped
+  # portainer:
+  #   image: portainer/portainer-ce:latest
+  #   ports:
+  #     - 9443:9443
+  #   logging:
+  #     options:
+  #       max-size: 10m
+  #   volumes:
+  #     - data:/data
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #   restart: unless-stopped
 volumes:
   data:
 

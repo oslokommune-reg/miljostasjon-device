@@ -75,8 +75,8 @@ set_env_variables() {
 }
 
 # Set environment variable for dev and prod
-set_env_variables "dev.env"
-set_env_variables "prod.env" 
+set_env_variables 'dev.env'
+set_env_variables 'prod.env' 
 
 # Function to clone or pull a repository
 function clone_or_pull() {
