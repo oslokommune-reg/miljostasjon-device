@@ -7,7 +7,7 @@ from tzlocal import get_localzone
 from module.utils.logger import setup_custom_logger
 
 
-class Device:
+class SerialDevice:
     def __init__(
         self,
         device_name,

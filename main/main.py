@@ -3,7 +3,7 @@ import time
 
 import schedule
 from module.aws.apigateway import ApiGatewayConnector
-from module.device import Device
+from module.device import SerialDevice
 from module.utils.logger import setup_custom_logger
 
 logger = setup_custom_logger(__name__)
@@ -14,7 +14,7 @@ apigateway = ApiGatewayConnector(
 )
 
 
-charger = Device(
+charger = SerialDevice(
     device_name="charger",
     baudrate=19200,
     timeout=3,
@@ -22,7 +22,7 @@ charger = Device(
     serial_end="HSDS",
 )
 
-loadlogger = Device(
+loadlogger = SerialDevice(
     device_name="loadlogger",
     baudrate=19200,
     timeout=3,
