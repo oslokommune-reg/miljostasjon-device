@@ -48,7 +48,6 @@ def read_and_send_data():
             payload_parent_keys={"deviceId": os.getenv("DEVICE_ID")},
         )
 
-
         # TODO: Add method for collecting data every N seconds and storing it to system storage
         # TODO: Remove file stored on system if API response is 200
 
@@ -61,7 +60,6 @@ def read_and_send_data():
 
 if __name__ == "__main__":
     try:
-
         # Run once on startup
         logger.info("Commencing initial run...")
         read_and_send_data()
