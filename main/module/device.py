@@ -1,7 +1,9 @@
-from datetime import datetime, timezone
 import platform
 import time
+from datetime import datetime, timezone
+
 from serial import Serial
+from serial.tools import list_ports
 from tzlocal import get_localzone
 
 from module.utils.logger import setup_custom_logger
