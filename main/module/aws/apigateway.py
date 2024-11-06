@@ -42,7 +42,7 @@ class ApiGatewayConnector:
         payload = self._construct_payload(payload_parent_keys)
         payload["data"] = data
 
-        logger.info(f"Performing POST request to {endpoint} with payload {payload}")
+        # logger.info(f"Performing POST request to {endpoint} with payload {payload}")
         response = requests.post(
             self.base_url + f"/{endpoint}",
             json=payload,

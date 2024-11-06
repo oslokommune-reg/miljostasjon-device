@@ -3,6 +3,7 @@ import json
 import os
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from queue import Queue
 
@@ -39,7 +40,7 @@ device_data_queue = Queue()
 
 # Thresholds for load current to trigger webcam
 WEBCAM_TRIGGER_THRESHOLD = 10  # Watt
-WEBCAM_COOLDOWN_MINUTES = 5  # Minutes before a new picture
+WEBCAM_COOLDOWN_MINUTES = 1  # Minutes before a new picture
 last_webcam_trigger_time = datetime.min  # Initialize to a very old date
 
 # Path to JSON file
@@ -59,7 +60,7 @@ def continuous_read():
 
     while True:
         # Start threads for each device
-        with threading.ThreadPoolExecutor() as executor:
+        with ThreadPoolExecutor() as executor:
             futures = [
                 executor.submit(device.collect_device_data, device, device_data_queue)
                 for device in devices
@@ -82,7 +83,8 @@ def continuous_read():
         # Check if we need to trigger the webcam
         if (
             "P" in data_entry["loadlogger"]
-            and data_entry["loadlogger"]["P"] > WEBCAM_TRIGGER_THRESHOLD
+            and data_entry["loadlogger"]["P"].lstrip("-").isdigit()
+            and int(data_entry["loadlogger"]["P"]) < -WEBCAM_TRIGGER_THRESHOLD
         ):
             current_time = datetime.now()
             if (
@@ -96,7 +98,6 @@ def continuous_read():
                 last_webcam_trigger_time = current_time
             else:
                 webcam_logger.debug("Threshold exceeded, but cooldown is still active.")
-
         # Append collected data to the temporary JSON file
         if data_entry["charger"] or data_entry["loadlogger"]:
             try:
@@ -131,7 +132,7 @@ if __name__ == "__main__":
 
         # Schedule data sending
         main_logger.info("Commencing schedule to send data file...")
-        schedule_seconds = int(os.getenv("SCHEDULE_SECONDS", 10))
+        schedule_seconds = int(os.getenv("SCHEDULE_SECONDS", 300))
         schedule.every(schedule_seconds).seconds.do(
             lambda: SerialDevice.send_power_data(TEMP_DATA_FILE_PATH)
         )

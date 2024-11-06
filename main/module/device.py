@@ -23,12 +23,14 @@ MOVEMENT_WAIT_TIME = (
     3  # Time to wait (in seconds) without movement before capturing image
 )
 TMP_FOLDER = "/tmp"
-MOVEMENT_SENSITIVITY_THRESHOLD = 500  # Sensitivity for movement detection
+MOVEMENT_SENSITIVITY_THRESHOLD = 300000  # Sensitivity for movement detection
+CALIBRATED_THRESHOLD_VALUE = 60
+
 TEMP_DATA_FILE_PATH = "temporary_device_data.json"
 
 # Get environment variables
-apigateway_url = ""
-apigateway_key = ""
+apigateway_url = "https://l85dzkg17k.execute-api.eu-west-1.amazonaws.com/dev"
+apigateway_key = "sS09t47YoI9pb7KIbX94r2lavXwjbynU3toxkIyn"
 device_id = os.getenv("DEVICE_ID", "0x09189b01875")
 
 # Instantiate API Gateway connector
@@ -47,23 +49,40 @@ class Webcam:
         self.movement_wait_time = movement_wait_time
         self.tmp_folder = tmp_folder
         self.movement_sensitivity = movement_sensitivity
+        self.cap = None  # Set up to initialize later
+        webcam_logger.info(f"Webcam initialized with port {self.port}.")
+
+    def initialize_camera(self):
+        """
+        Initializes the camera, ensuring any previously opened capture is released.
+        """
+        if self.cap is not None:
+            self.cap.release()
+            cv2.destroyAllWindows()
+            time.sleep(1)  # Allow time for the camera to reset
+
         self.cap = cv2.VideoCapture(self.port)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
         self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"JPEG"))
-        webcam_logger.info(f"Webcam initialized with port {self.port}.")
 
-    def trigger_webcam(self):
         if not self.cap.isOpened():
             webcam_logger.error("Failed to open webcam.")
+            return False
+        return True
+
+    def trigger_webcam(self):
+        # Initialize the camera properly before starting
+        if not self.initialize_camera():
             return
 
-        ret, prev_frame = self.cap.read()
+        # Initialize average frame for background modeling
+        ret, frame = self.cap.read()
         if not ret:
             webcam_logger.error("Failed to read from webcam.")
             return
 
-        prev_gray = cv2.cvtColor(prev_frame, cv2.COLOR_BGR2GRAY)
+        average_frame = np.float32(frame)
         last_movement_time = time.time()
 
         while True:
@@ -72,16 +91,27 @@ class Webcam:
                 webcam_logger.error("Failed to read from webcam.")
                 break
 
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            frame_diff = cv2.absdiff(prev_gray, gray)
-            _, thresh = cv2.threshold(
-                frame_diff, self.movement_sensitivity, 255, cv2.THRESH_BINARY
-            )
-            movement = np.sum(thresh) > 0
+            # Update background model using running average
+            cv2.accumulateWeighted(frame, average_frame, 0.01)
+            background = cv2.convertScaleAbs(average_frame)
 
-            if movement:
+            # Calculate the difference between the current frame and the background
+            frame_diff = cv2.absdiff(frame, background)
+
+            # Convert difference to grayscale and apply calibrated threshold
+            gray_diff = cv2.cvtColor(frame_diff, cv2.COLOR_BGR2GRAY)
+            _, thresh = cv2.threshold(
+                gray_diff, CALIBRATED_THRESHOLD_VALUE, 255, cv2.THRESH_BINARY
+            )
+
+            # Determine if movement is detected based on threshold
+            movement_score = cv2.countNonZero(thresh)
+
+            if movement_score > self.movement_sensitivity:
                 last_movement_time = time.time()
-                webcam_logger.debug("Movement detected, resetting timer.")
+                webcam_logger.debug(
+                    f"Movement detected, resetting timer. Movement score:{movement_score}"
+                )
             else:
                 webcam_logger.debug("No movement detected.")
                 if time.time() - last_movement_time > self.movement_wait_time:
@@ -92,11 +122,7 @@ class Webcam:
                     self.send_image_to_api(image_path)
                     break
 
-            prev_gray = gray
-
-        self.cap.release()
-        cv2.destroyAllWindows()
-        webcam_logger.info("Webcam trigger sequence completed.")
+        self.release_resources()
 
     def is_image_color(self, image):
         """
@@ -146,6 +172,15 @@ class Webcam:
             webcam_logger.error(
                 f"Failed to find image at {image_path} for base64 conversion."
             )
+
+    def release_resources(self):
+        """
+        Release the webcam and destroy any windows.
+        """
+        if self.cap is not None:
+            self.cap.release()
+            cv2.destroyAllWindows()
+            webcam_logger.info("Webcam resources released.")
 
 
 class SerialDevice:
@@ -249,7 +284,9 @@ class SerialDevice:
                     device.ser.close()
                     reading = False
                     collecting = False
-                    device.logger.info(f"Received data block: {data}")
+                    # device.logger.info(
+                    #     "Received data block. Appending to temporary file."
+                    # )
                     queue.put((device.device_name, data))
 
     @staticmethod
