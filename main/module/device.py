@@ -30,8 +30,8 @@ CALIBRATED_THRESHOLD_VALUE = 60
 TEMP_DATA_FILE_PATH = "temporary_device_data.json"
 
 # Get environment variables
-apigateway_url = "https://l85dzkg17k.execute-api.eu-west-1.amazonaws.com/dev"
-apigateway_key = ""
+apigateway_url = os.getenv("API_GATEWAY_MILJOSTASJON_URL")
+apigateway_key = os.getenv("API_GATEWAY_MILJOSTASJON_KEY")
 device_id = os.getenv("DEVICE_ID")
 
 # Instantiate API Gateway connector
