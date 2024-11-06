@@ -4,22 +4,6 @@
 SCRIPT_DIR=$(dirname "$0")
 echo "$PWD"
 
-# Immediately go to parent dir
-cd ..
-
-# Update and upgrade the system
-sudo apt-get update
-sudo apt-get upgrade -y
-
-# Install Git
-sudo apt-get install git -y
-
-# Check version
-echo python3 --version
-
-# Install pip
-sudo apt install python3-pip -y
-
 # Function to check if TeamViewer daemon is active
 is_teamviewer_daemon_active() {
     if systemctl is-active --quiet teamviewerd; then
@@ -41,7 +25,8 @@ else
     echo "No need to start TeamViewer daemon. It's already running."
 fi
 
-echo "Loading configuration variables"
+# Assign host to Teamviewer client using token
+# ./scripts/enroll_teamviewer_host.sh
 
 config_path="./scripts/config.sh"
 fallback_config_path="./config.sh"
