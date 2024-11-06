@@ -30,8 +30,8 @@ TEMP_DATA_FILE_PATH = "temporary_device_data.json"
 
 # Get environment variables
 apigateway_url = "https://l85dzkg17k.execute-api.eu-west-1.amazonaws.com/dev"
-apigateway_key = "sS09t47YoI9pb7KIbX94r2lavXwjbynU3toxkIyn"
-device_id = os.getenv("DEVICE_ID", "0x09189b01875")
+apigateway_key = ""
+device_id = os.getenv("DEVICE_ID")
 
 # Instantiate API Gateway connector
 apigateway = ApiGatewayConnector(base_url=apigateway_url, api_key=apigateway_key)
