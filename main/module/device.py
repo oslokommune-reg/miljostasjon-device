@@ -27,7 +27,7 @@ TMP_FOLDER = "/tmp"
 MOVEMENT_SENSITIVITY_THRESHOLD = 300000  # Sensitivity for movement detection
 CALIBRATED_THRESHOLD_VALUE = 60
 
-TEMP_DATA_FILE_PATH = "temporary_device_data.json"
+TEMP_DATA_FILE_PATH = "/container_storage/temporary_device_data.json"
 
 # Get environment variables
 apigateway_url = os.getenv("API_GATEWAY_MILJOSTASJON_URL")
