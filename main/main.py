@@ -44,7 +44,7 @@ WEBCAM_COOLDOWN_MINUTES = 1  # Minutes before a new picture
 last_webcam_trigger_time = datetime.min  # Initialize to a very old date
 
 # Path to JSON file
-TEMP_DATA_FILE_PATH = "temporary_device_data.json"
+TEMP_DATA_FILE_PATH = "/container_storage/temporary_device_data.json"
 
 # Initialize JSON file if it doesn't exist
 if not os.path.exists(TEMP_DATA_FILE_PATH):
