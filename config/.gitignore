@@ -1,0 +1,4 @@
+*device.env
+*.env
+images/*
+*.img
