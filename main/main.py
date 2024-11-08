@@ -1,4 +1,3 @@
-import fcntl
 import json
 import os
 import threading
@@ -40,7 +39,7 @@ device_data_queue = Queue()
 
 # Thresholds for load current to trigger webcam
 WEBCAM_TRIGGER_THRESHOLD = 10  # Watt
-WEBCAM_COOLDOWN_MINUTES = 1  # Minutes before a new picture
+WEBCAM_COOLDOWN_MINUTES = 5  # Minutes before a new picture
 last_webcam_trigger_time = datetime.min  # Initialize to a very old date
 
 # Path to JSON file
@@ -48,6 +47,7 @@ TEMP_DATA_FILE_PATH = "/container_storage/temporary_device_data.json"
 
 # Initialize JSON file if it doesn't exist
 if not os.path.exists(TEMP_DATA_FILE_PATH):
+    print(f"Creating file at {TEMP_DATA_FILE_PATH}")
     with open(TEMP_DATA_FILE_PATH, "w") as file:
         json.dump([], file)
 
@@ -98,18 +98,22 @@ def continuous_read():
                 last_webcam_trigger_time = current_time
             else:
                 webcam_logger.debug("Threshold exceeded, but cooldown is still active.")
+
         # Append collected data to the temporary JSON file
         if data_entry["charger"] or data_entry["loadlogger"]:
             try:
-                with open(TEMP_DATA_FILE_PATH, "r+") as file:
-                    fcntl.flock(file, fcntl.LOCK_EX)
-                    existing_data = json.load(file) if file.tell() > 0 else []
+                with open(TEMP_DATA_FILE_PATH, "a+") as file:
+                    file.seek(0)
+                    try:
+                        existing_data = json.load(file)
+                    except json.JSONDecodeError:
+                        existing_data = []
                     existing_data.append(data_entry)
                     file.seek(0)
                     json.dump(existing_data, file, indent=4)
                     file.truncate()
-            except json.JSONDecodeError:
-                main_logger.error("Failed to decode JSON data from file.")
+            except Exception as e:
+                main_logger.error(f"Error while handling the file: {e}")
 
         # Sleep before collecting data again
         time.sleep(1)
