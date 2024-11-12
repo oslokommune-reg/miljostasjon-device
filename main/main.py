@@ -102,13 +102,17 @@ def continuous_read():
         # Append collected data to the temporary JSON file
         if data_entry["charger"] or data_entry["loadlogger"]:
             try:
-                with open(TEMP_DATA_FILE_PATH, "a+") as file:
-                    file.seek(0)
+                # Load existing data, append new entry, and write back
+                with open(TEMP_DATA_FILE_PATH, "r+") as file:
                     try:
+                        file.seek(0)
                         existing_data = json.load(file)
                     except json.JSONDecodeError:
-                        existing_data = []
+                        existing_data = []  # File is empty or corrupted, start fresh
+
                     existing_data.append(data_entry)
+
+                    # Rewrite file with updated data
                     file.seek(0)
                     json.dump(existing_data, file, indent=4)
                     file.truncate()
