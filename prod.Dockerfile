@@ -1,6 +1,8 @@
 # Use an official Python runtime as a parent image
 FROM python:3.11
 
+RUN apt-get update && apt-get install ffmpeg libsm6 libxext6  -y
+
 # Set the working directory in the container
 WORKDIR /usr/src/app
 
