@@ -39,7 +39,7 @@ device_data_queue = Queue()
 
 # Thresholds for load current to trigger webcam
 WEBCAM_TRIGGER_THRESHOLD = 10  # Watt
-WEBCAM_COOLDOWN_MINUTES = 5  # Minutes before a new picture
+WEBCAM_COOLDOWN_MINUTES = 3  # Minutes before a new picture
 last_webcam_trigger_time = datetime.min  # Initialize to a very old date
 
 # Path to JSON file
