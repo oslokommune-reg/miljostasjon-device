@@ -6,10 +6,13 @@ def setup_custom_logger(name):
         fmt="%(asctime)s \t %(levelname)s \t %(name)s \t %(message)s"
     )
 
-    handler = logging.StreamHandler()
-    handler.setFormatter(formatter)
-
     logger = logging.getLogger(name)
+
+    # Ensure that we only add the handler if there are no existing handlers
+    if not logger.hasHandlers():
+        handler = logging.StreamHandler()
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+
     logger.setLevel(logging.DEBUG)
-    logger.addHandler(handler)
     return logger
