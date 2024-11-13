@@ -80,7 +80,7 @@ def continuous_read():
             device_name, device_data = device_data_queue.get()
             data_entry[device_name] = device_data
 
-        # Check if we need to trigger the webcam
+            # Check if we need to trigger the webcam
         if (
             "P" in data_entry["loadlogger"]
             and data_entry["loadlogger"]["P"].lstrip("-").isdigit()
@@ -90,7 +90,11 @@ def continuous_read():
             if (
                 current_time - last_webcam_trigger_time
             ).total_seconds() > WEBCAM_COOLDOWN_MINUTES * 60:
-                webcam_logger.info("Threshold exceeded, triggering webcam...")
+                # Include the value of P in the log message
+                P_value = data_entry["loadlogger"]["P"]
+                webcam_logger.info(
+                    f"Threshold exceeded (P = {P_value}), triggering webcam..."
+                )
                 try:
                     webcam.trigger_webcam()
                 except Exception as e:
@@ -99,7 +103,7 @@ def continuous_read():
             else:
                 webcam_logger.debug("Threshold exceeded, but cooldown is still active.")
 
-        # Append collected data to the temporary JSON file
+        # Append collected data to the temporary JSON file regardless of the webcam cooldown
         if data_entry["charger"] or data_entry["loadlogger"]:
             try:
                 # Load existing data, append new entry, and write back
