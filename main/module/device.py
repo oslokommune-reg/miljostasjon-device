@@ -4,13 +4,11 @@ import json
 import os
 import platform
 import time
-from datetime import datetime, timezone
 
 import cv2
 import numpy as np
 from serial import Serial
 from serial.tools import list_ports
-from tzlocal import get_localzone
 
 from module.aws.apigateway import ApiGatewayConnector
 from module.utils.logger import setup_custom_logger
