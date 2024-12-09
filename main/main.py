@@ -3,7 +3,7 @@ import os
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
+from datetime import datetime, timedelta
 from queue import Queue
 
 import schedule
@@ -39,7 +39,9 @@ device_data_queue = Queue()
 
 # Thresholds for load current to trigger webcam
 WEBCAM_TRIGGER_THRESHOLD = 16  # Watt
-WEBCAM_COOLDOWN_MINUTES = 3  # Minutes before a new picture
+# Define webcam delay as a global variable (in minutes)
+webcam_delay = 30  # 30 minutes
+webcam_trigger_time = None
 last_webcam_trigger_time = datetime.min  # Initialize to a very old date
 
 # Path to JSON file
@@ -56,7 +58,7 @@ def continuous_read():
     """
     Continuously read data from devices and append to a temporary JSON file.
     """
-    global last_webcam_trigger_time
+    global webcam_trigger_time, webcam_delay
 
     while True:
         # Start threads for each device
@@ -81,29 +83,46 @@ def continuous_read():
             data_entry[device_name] = device_data
 
             # Check if we need to trigger the webcam
-        if (
-            "P" in data_entry["loadlogger"]
-            and data_entry["loadlogger"]["P"].lstrip("-").isdigit()
-            and int(data_entry["loadlogger"]["P"]) < -WEBCAM_TRIGGER_THRESHOLD
-        ):
-            current_time = datetime.now()
             if (
-                current_time - last_webcam_trigger_time
-            ).total_seconds() > WEBCAM_COOLDOWN_MINUTES * 60:
-                # Include the value of P in the log message
-                P_value = data_entry["loadlogger"]["P"]
-                webcam_logger.info(
-                    f"Threshold exceeded (P = {P_value}), triggering webcam..."
-                )
-                try:
-                    webcam.trigger_webcam()
-                except Exception as e:
-                    webcam_logger.error(f"Failed to trigger webcam: {e}")
-                last_webcam_trigger_time = current_time
-            else:
-                webcam_logger.debug("Threshold exceeded, but cooldown is still active.")
+                "P" in data_entry["loadlogger"]
+                and data_entry["loadlogger"]["P"].lstrip("-").isdigit()
+            ):
+                P_value = int(data_entry["loadlogger"]["P"])
 
-        # Append collected data to the temporary JSON file regardless of the webcam cooldown
+                if P_value < -WEBCAM_TRIGGER_THRESHOLD:
+                    current_time = datetime.now()
+
+                    # If P goes below the threshold, reset the timer
+                    webcam_trigger_time = current_time
+                    webcam_logger.info(
+                        f"Threshold exceeded (P = {P_value}), starting {webcam_delay}-minute timer."
+                    )
+
+                    # Check if the configured time has passed since the threshold was exceeded
+                    if webcam_trigger_time and (
+                        current_time - webcam_trigger_time
+                    ) < timedelta(minutes=webcam_delay):
+                        remaining_time = timedelta(minutes=webcam_delay) - (
+                            current_time - webcam_trigger_time
+                        )
+                        remaining_minutes = remaining_time.seconds // 60
+                        webcam_logger.info(
+                            f"Time remaining until webcam trigger: {remaining_minutes}m"
+                        )
+
+                    elif webcam_trigger_time and (
+                        current_time - webcam_trigger_time
+                    ) >= timedelta(minutes=webcam_delay):
+                        webcam_logger.info(
+                            f"{webcam_delay} minutes passed since P threshold was exceeded, triggering webcam (P = {P_value})..."
+                        )
+                        try:
+                            webcam.trigger_webcam()
+                        except Exception as e:
+                            webcam_logger.error(f"Failed to trigger webcam: {e}")
+                        webcam_trigger_time = None  # Reset the trigger time to prevent further webcam triggers
+
+        # Append collected data to the temporary JSON file regardless of the webcam trigger
         if data_entry["charger"] or data_entry["loadlogger"]:
             try:
                 # Load existing data, append new entry, and write back
