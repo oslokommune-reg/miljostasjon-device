@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 # Add startup.sh to boot
 USER=$USER
 SERVICE_NAME="miljostasjon-startup"
