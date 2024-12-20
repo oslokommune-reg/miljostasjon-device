@@ -170,7 +170,9 @@ if __name__ == "__main__":
 
         while True:
             schedule.run_pending()
-            time.sleep(1)
+
+            # Read every 10 seconds
+            time.sleep(10)
 
     except Exception as e:
         main_logger.error(f"Fatal error in main: {e}")
