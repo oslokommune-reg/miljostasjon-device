@@ -143,7 +143,7 @@ def continuous_read():
                 main_logger.error(f"Error while handling the file: {e}")
 
         # Sleep before collecting data again
-        time.sleep(1)
+        time.sleep(30)
 
 
 if __name__ == "__main__":
@@ -170,8 +170,6 @@ if __name__ == "__main__":
 
         while True:
             schedule.run_pending()
-
-            # Read every 10 seconds
             time.sleep(10)
 
     except Exception as e:
