@@ -3,11 +3,11 @@ import os
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta
+from datetime import datetime
 from queue import Queue
 
 import schedule
-from module.device import SerialDevice, Webcam
+from module.device import SerialDevice
 from module.utils.logger import setup_custom_logger
 from tzlocal import get_localzone
 
@@ -63,7 +63,10 @@ def continuous_read():
     while True:
         # Start threads for each device
         with ThreadPoolExecutor() as executor:
-            futures = [executor.submit(device.collect_device_data, device, device_data_queue) for device in devices]
+            futures = [
+                executor.submit(device.collect_device_data, device, device_data_queue)
+                for device in devices
+            ]
             for future in futures:
                 future.result()  # Block until each thread is complete
 
@@ -150,7 +153,9 @@ if __name__ == "__main__":
         # Schedule data sending
         main_logger.info("Commencing schedule to send data file...")
         schedule_seconds = int(os.getenv("SCHEDULE_SECONDS", 300))
-        schedule.every(schedule_seconds).seconds.do(lambda: SerialDevice.send_power_data(TEMP_DATA_FILE_PATH))
+        schedule.every(schedule_seconds).seconds.do(
+            lambda: SerialDevice.send_power_data(TEMP_DATA_FILE_PATH)
+        )
 
         while True:
             schedule.run_pending()
