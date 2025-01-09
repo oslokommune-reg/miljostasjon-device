@@ -78,9 +78,9 @@ def continuous_read():
         }
 
         # Extract data from the queue
-        # while not device_data_queue.empty():
-        #     device_name, device_data = device_data_queue.get()
-        #     data_entry[device_name] = device_data
+        while not device_data_queue.empty():
+            device_name, device_data = device_data_queue.get()
+            data_entry[device_name] = device_data
 
         #     # Check if we need to trigger the webcam
         #     if "P" in data_entry["loadlogger"] and data_entry["loadlogger"]["P"].lstrip("-").isdigit():
