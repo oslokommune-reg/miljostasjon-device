@@ -207,15 +207,19 @@ class SerialDevice:
             )
 
     def find_port(self):
+        # Function to automatically detect which port to read for the given device. 
         potential_ports = self.list_potential_ports()
         self.logger.info(f"Detected potential ports: {potential_ports}")
         for port in potential_ports:
+
+            # Verify port to check for desired signature. If successfully verified, return that port as the correct port.
             if self.verify_port(port):
                 self.logger.info(f"Device {self.device_name} found on port: {port}")
                 return port
         raise Exception(f"No matching port found for {self.device_name}")
 
     def list_potential_ports(self):
+        # Lists the potential USB ports available, for the system the code is currently running on.
         if platform.system() == "Linux":
             import glob
 
@@ -262,11 +266,16 @@ class SerialDevice:
             return False
 
     def collect_device_data(self, device, queue):
+        # Collect the device data from the serial
         data = {}
         if not device.ser.isOpen():
             device.ser.open()
+
+        # Set initial variables
         reading = True
         collecting = False
+
+        # Read
         while reading:
             line = device.ser.readline().decode("latin-1").strip()
             if device.serial_start in line:
@@ -279,6 +288,8 @@ class SerialDevice:
                 if len(parts) == 2:
                     key, value = parts
                     data[key.strip()] = value.strip()
+
+                # If the serial-end signature is recognized, close the port and store the read data in the queue.
                 if device.serial_end in line:
                     device.ser.close()
                     reading = False
