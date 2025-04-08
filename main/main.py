@@ -82,35 +82,6 @@ def continuous_read():
             device_name, device_data = device_data_queue.get()
             data_entry[device_name] = device_data
 
-        #     # Check if we need to trigger the webcam
-        #     if "P" in data_entry["loadlogger"] and data_entry["loadlogger"]["P"].lstrip("-").isdigit():
-        #         P_value = int(data_entry["loadlogger"]["P"])
-
-        #         if P_value < -WEBCAM_TRIGGER_THRESHOLD:
-        #             current_time = datetime.now()
-
-        #             # If P goes below the threshold, reset the timer
-        #             webcam_trigger_time = current_time
-        #             webcam_logger.info(f"Threshold exceeded (P = {P_value}), starting {webcam_delay}-minute timer.")
-
-        #             # Check if the configured time has passed since the threshold was exceeded
-        #             if webcam_trigger_time and (current_time - webcam_trigger_time) < timedelta(minutes=webcam_delay):
-        #                 remaining_time = timedelta(minutes=webcam_delay) - (current_time - webcam_trigger_time)
-        #                 remaining_minutes = remaining_time.seconds // 60
-        #                 webcam_logger.info(f"Time remaining until webcam trigger: {remaining_minutes}m")
-
-        #             elif webcam_trigger_time and (current_time - webcam_trigger_time) >= timedelta(
-        #                 minutes=webcam_delay
-        #             ):
-        #                 webcam_logger.info(
-        #                     f"{webcam_delay} minutes passed since P threshold was exceeded, triggering webcam (P = {P_value})..."
-        #                 )
-        #                 try:
-        #                     webcam.trigger_webcam()
-        #                 except Exception as e:
-        #                     webcam_logger.error(f"Failed to trigger webcam: {e}")
-        #                 webcam_trigger_time = None  # Reset the trigger time to prevent further webcam triggers
-
         # Append collected data to the temporary JSON file regardless of the webcam trigger
         if data_entry["charger"] or data_entry["loadlogger"]:
             try:
@@ -137,12 +108,6 @@ def continuous_read():
 
 if __name__ == "__main__":
     try:
-        # Testing webcam functionality
-        # webcam_logger.info("Testing webcam...")
-        # try:
-        #     webcam.trigger_webcam()
-        # except Exception as e:
-        #     webcam_logger.error(f"Failed to trigger webcam during test: {e}")
 
         # Start continuous data collection in a separate thread
         main_logger.info("Continuously collecting data from serial devices...")
