@@ -283,9 +283,6 @@ class SerialDevice:
                     device.ser.close()
                     reading = False
                     collecting = False
-                    # device.logger.info(
-                    #     "Received data block. Appending to temporary file."
-                    # )
                     queue.put((device.device_name, data))
 
     @staticmethod

@@ -20,7 +20,7 @@ Now run the below command to customize the image
 
 Once that has succeed, burn the image to your SD card (change the path as needed):
 ```
-./format_and_burn_sdcard.sh miljostasjon-3
+./format_and_burn_sdcard.sh --path mmcblk0 --hostname miljostasjon-3
 
 ```
 
