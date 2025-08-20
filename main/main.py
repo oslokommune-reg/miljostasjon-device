@@ -17,7 +17,7 @@ charger_logger = setup_custom_logger("charger")
 loadlogger_logger = setup_custom_logger("loadlogger")
 webcam_logger = setup_custom_logger("webcam")
 
-# Instantiate devices with the serial_start and serial_end arguments. 
+# Instantiate devices with the serial_start and serial_end arguments.
 # serial_start and serial_end are used to identify which port to listen to, and to chunk the data into the correct "blocks" of data
 # webcam = Webcam()
 charger = SerialDevice(
@@ -109,14 +109,21 @@ def continuous_read():
 
 if __name__ == "__main__":
     try:
-
         # Start continuous data collection in a separate thread
         main_logger.info("Continuously collecting data from serial devices...")
         read_thread = threading.Thread(target=continuous_read)
         read_thread.daemon = True
         read_thread.start()
 
-        # Schedule data sending
+        # Schedule one-time data send after 60 seconds
+        def send_initial_data():
+            main_logger.info("Sending initial data package after 1 minute...")
+            SerialDevice.send_power_data(TEMP_DATA_FILE_PATH)
+
+        initial_send_timer = threading.Timer(60.0, send_initial_data)
+        initial_send_timer.start()
+
+        # Schedule regular data sending
         main_logger.info("Commencing schedule to send data file...")
         schedule_seconds = int(os.getenv("SCHEDULE_SECONDS", 300))
         schedule.every(schedule_seconds).seconds.do(
