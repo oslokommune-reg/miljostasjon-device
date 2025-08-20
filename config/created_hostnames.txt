@@ -1,3 +1,5 @@
-miljostasjon-0
-miljostasjon-4
-miljostasjon-3miljostasjon-2
+miljostasjon-0 (ulven)
+miljostasjon-2 (oppsal)
+miljostasjon-3 (vollebekk)
+miljostasjon-4 (sogn)
+miljostasjon-5 (smedstua)
