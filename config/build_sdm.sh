@@ -4,7 +4,7 @@ set -a # Automatically export all variables
 source "device.env"
 set +a
 
-SRC_IMAGE_NAME="2024-10-22-raspios-bookworm-arm64.img"
+SRC_IMAGE_NAME="2024-11-19-raspios-bookworm-arm64.img"
 
 rm miljostasjon-pi.img
 echo "Removed old image from working directory"
@@ -14,6 +14,7 @@ echo "Copied $SRC_IMAGE_NAME from ./images to working directory"
 
 
 sudo sdm --customize miljostasjon-pi.img \
+    --extend --xmb 2048 \
     --plugin user:"adduser=miljostasjon|password=$DEVICE_PWD" \
     --plugin user:"deluser=pi" \
     --plugin disables:"piwiz|wifi|bluetooth" \
