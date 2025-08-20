@@ -207,11 +207,10 @@ class SerialDevice:
             )
 
     def find_port(self):
-        # Function to automatically detect which port to read for the given device. 
+        # Function to automatically detect which port to read for the given device.
         potential_ports = self.list_potential_ports()
         self.logger.info(f"Detected potential ports: {potential_ports}")
         for port in potential_ports:
-
             # Verify port to check for desired signature. If successfully verified, return that port as the correct port.
             if self.verify_port(port):
                 self.logger.info(f"Device {self.device_name} found on port: {port}")
