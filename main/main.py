@@ -17,7 +17,7 @@ charger_logger = setup_custom_logger("charger")
 loadlogger_logger = setup_custom_logger("loadlogger")
 webcam_logger = setup_custom_logger("webcam")
 
-# Instantiate devices with the serial_start and serial_end arguments. 
+# Instantiate devices with the serial_start and serial_end arguments.
 # serial_start and serial_end are used to identify which port to listen to, and to chunk the data into the correct "blocks" of data
 # webcam = Webcam()
 charger = SerialDevice(
@@ -109,7 +109,6 @@ def continuous_read():
 
 if __name__ == "__main__":
     try:
-
         # Start continuous data collection in a separate thread
         main_logger.info("Continuously collecting data from serial devices...")
         read_thread = threading.Thread(target=continuous_read)
