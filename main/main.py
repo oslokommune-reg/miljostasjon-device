@@ -115,7 +115,15 @@ if __name__ == "__main__":
         read_thread.daemon = True
         read_thread.start()
 
-        # Schedule data sending
+        # Schedule one-time data send after 60 seconds
+        def send_initial_data():
+            main_logger.info("Sending initial data package after 1 minute...")
+            SerialDevice.send_power_data(TEMP_DATA_FILE_PATH)
+
+        initial_send_timer = threading.Timer(60.0, send_initial_data)
+        initial_send_timer.start()
+
+        # Schedule regular data sending
         main_logger.info("Commencing schedule to send data file...")
         schedule_seconds = int(os.getenv("SCHEDULE_SECONDS", 300))
         schedule.every(schedule_seconds).seconds.do(
