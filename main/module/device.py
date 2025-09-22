@@ -6,7 +6,6 @@ import platform
 import time
 
 import cv2
-import numpy as np
 from serial import Serial
 from serial.tools import list_ports
 
@@ -15,16 +14,10 @@ from module.utils.logger import setup_custom_logger
 
 logger = setup_custom_logger(__name__)
 webcam_logger = setup_custom_logger("webcam")
-
 # Constants for settings
 DETECTED_WEBCAM_PORT = 0  # Assuming webcam is at port 0; adjust as needed
-MOVEMENT_WAIT_TIME = (
-    3  # Time to wait (in seconds) without movement before capturing image
-)
+WARMUP_SECONDS = 10  # Time for camera auto-adjustment in darkness
 TMP_FOLDER = "/tmp"
-MOVEMENT_SENSITIVITY_THRESHOLD = 300000  # Sensitivity for movement detection
-CALIBRATED_THRESHOLD_VALUE = 60
-
 TEMP_DATA_FILE_PATH = "/container_storage/temporary_device_data.json"
 
 # Get environment variables
@@ -37,18 +30,10 @@ apigateway = ApiGatewayConnector(base_url=apigateway_url, api_key=apigateway_key
 
 
 class Webcam:
-    def __init__(
-        self,
-        port=DETECTED_WEBCAM_PORT,
-        movement_wait_time=MOVEMENT_WAIT_TIME,
-        tmp_folder=TMP_FOLDER,
-        movement_sensitivity=MOVEMENT_SENSITIVITY_THRESHOLD,
-    ):
+    def __init__(self, port=DETECTED_WEBCAM_PORT, tmp_folder=TMP_FOLDER):
         self.port = port
-        self.movement_wait_time = movement_wait_time
         self.tmp_folder = tmp_folder
-        self.movement_sensitivity = movement_sensitivity
-        self.cap = None  # Set up to initialize later
+        self.cap = None  # Will be initialized when needed
         webcam_logger.info(f"Webcam initialized with port {self.port}.")
 
     def initialize_camera(self):
@@ -71,69 +56,48 @@ class Webcam:
         return True
 
     def trigger_webcam(self):
-        # Initialize the camera properly before starting
+        """
+        Warm up camera for WARMUP_SECONDS, then capture one image,
+        save it locally, and send to API.
+        """
         if not self.initialize_camera():
             return
 
-        # Initialize average frame for background modeling
-        ret, frame = self.cap.read()
-        if not ret:
-            webcam_logger.error("Failed to read from webcam.")
-            return
+        try:
+            # Try to enable auto settings (driver dependent, may be ignored)
+            for prop, val in [
+                (cv2.CAP_PROP_AUTO_EXPOSURE, 0.75),
+                (cv2.CAP_PROP_AUTO_WB, 1),
+                (cv2.CAP_PROP_GAIN, -1),
+            ]:
+                try:
+                    self.cap.set(prop, val)
+                except Exception:
+                    pass
 
-        average_frame = np.float32(frame)
-        last_movement_time = time.time()
+            # Warm up camera so auto-exposure can stabilize
+            start = time.monotonic()
+            last_frame = None
+            while time.monotonic() - start < WARMUP_SECONDS:
+                ret, frame = self.cap.read()
+                if ret:
+                    last_frame = frame
 
-        while True:
+            # Capture final frame (fallback to last valid warmup frame)
             ret, frame = self.cap.read()
-            if not ret:
-                webcam_logger.error("Failed to read from webcam.")
-                break
+            frame = frame if ret else last_frame
+            if frame is None:
+                webcam_logger.error("Failed to capture frame after warmup.")
+                return
 
-            # Update background model using running average
-            cv2.accumulateWeighted(frame, average_frame, 0.01)
-            background = cv2.convertScaleAbs(average_frame)
+            # Save and send image
+            image_path = self.save_image(frame)
+            self.send_image_to_api(image_path)
 
-            # Calculate the difference between the current frame and the background
-            frame_diff = cv2.absdiff(frame, background)
-
-            # Convert difference to grayscale and apply calibrated threshold
-            gray_diff = cv2.cvtColor(frame_diff, cv2.COLOR_BGR2GRAY)
-            _, thresh = cv2.threshold(
-                gray_diff, CALIBRATED_THRESHOLD_VALUE, 255, cv2.THRESH_BINARY
-            )
-
-            # Determine if movement is detected based on threshold
-            movement_score = cv2.countNonZero(thresh)
-
-            if movement_score > self.movement_sensitivity:
-                last_movement_time = time.time()
-                webcam_logger.debug(
-                    f"Movement detected, resetting timer. Movement score:{movement_score}"
-                )
-            else:
-                webcam_logger.debug("No movement detected.")
-                if time.time() - last_movement_time > self.movement_wait_time:
-                    webcam_logger.info("Capturing image after no movement detected.")
-
-                    # if self.is_image_color(frame):
-                    image_path = self.save_image(frame)
-                    self.send_image_to_api(image_path)
-                    break
-
-        self.release_resources()
-
-    def is_image_color(self, image):
-        """
-        Check if the image has colors and is not grayscale or "nightvision-like".
-        """
-        b, g, r = cv2.split(image)
-        # If all channels are equal, the image is grayscale
-        if np.array_equal(b, g) and np.array_equal(g, r):
-            webcam_logger.info("Image is grayscale.")
-            return False
-        webcam_logger.info("Image has color. Proceeding.")
-        return True
+        except Exception as e:
+            webcam_logger.exception(f"Error while capturing/sending image: {e}")
+        finally:
+            self.release_resources()
 
     def save_image(self, image):
         if not os.path.exists(self.tmp_folder):

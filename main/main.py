@@ -7,7 +7,7 @@ from datetime import datetime
 from queue import Queue
 
 import schedule
-from module.device import SerialDevice
+from module.device import SerialDevice, Webcam
 from module.utils.logger import setup_custom_logger
 from tzlocal import get_localzone
 
@@ -17,9 +17,10 @@ charger_logger = setup_custom_logger("charger")
 loadlogger_logger = setup_custom_logger("loadlogger")
 webcam_logger = setup_custom_logger("webcam")
 
+
 # Instantiate devices with the serial_start and serial_end arguments.
 # serial_start and serial_end are used to identify which port to listen to, and to chunk the data into the correct "blocks" of data
-# webcam = Webcam()
+webcam = Webcam()
 charger = SerialDevice(
     device_name="charger",
     baudrate=19200,
@@ -38,15 +39,10 @@ loadlogger = SerialDevice(
 devices = [charger, loadlogger]
 device_data_queue = Queue()
 
-# Thresholds for load current to trigger webcam
-WEBCAM_TRIGGER_THRESHOLD = 16  # Watt
-# Define webcam delay as a global variable (in minutes)
-webcam_delay = 30  # 30 minutes
-webcam_trigger_time = None
-last_webcam_trigger_time = datetime.min  # Initialize to a very old date
-
 # Path to JSON file
 TEMP_DATA_FILE_PATH = "/container_storage/temporary_device_data.json"
+# Constants for scheduling picture
+CAPTURE_TIME = "21:10"  # Daily capture time (HH:MM, 24h format)
 
 # Initialize JSON file if it doesn't exist
 if not os.path.exists(TEMP_DATA_FILE_PATH):
@@ -107,6 +103,12 @@ def continuous_read():
         time.sleep(60)
 
 
+def capture_job():
+    t = threading.Thread(target=webcam.trigger_webcam, daemon=True)
+    t.start()
+    main_logger.info(f"Scheduled webcam capture triggered ({CAPTURE_TIME}).")
+
+
 if __name__ == "__main__":
     try:
         # Start continuous data collection in a separate thread
@@ -129,6 +131,8 @@ if __name__ == "__main__":
         schedule.every(schedule_seconds).seconds.do(
             lambda: SerialDevice.send_power_data(TEMP_DATA_FILE_PATH)
         )
+        # Schedule picture taken and sent to API
+        schedule.every().day.at(CAPTURE_TIME).do(capture_job)
 
         while True:
             schedule.run_pending()
