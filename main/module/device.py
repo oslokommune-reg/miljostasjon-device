@@ -6,7 +6,6 @@ import platform
 import time
 
 import cv2
-import numpy as np
 from serial import Serial
 from serial.tools import list_ports
 
