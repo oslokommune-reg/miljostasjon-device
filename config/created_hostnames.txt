@@ -1,4 +1,17 @@
-miljostasjon-0
-miljostasjon-4
-miljostasjon-3
-miljostasjon-2
+miljostasjon-0 (Ulven)
+miljostasjon-2 (Oppsal)
+miljostasjon-3 (Vollebekk)
+miljostasjon-4 (Sogn)
+miljostasjon-5 (Smedstua)
+miljostasjon-6 (SiO Kringsjå)
+miljostasjon-7 (Myrer)
+miljostasjon-8 (Ullevaal Hageby) (Location aborted will be changed)
+miljostasjon-9 (Nedre Haugen)
+miljostasjon-10 (Skøyenåsen)
+miljostasjon-11 (Hovseter) (Location aborted will be changed)
+miljostasjon-12 (Kalbakken)
+miljostasjon-13 (Skjønhaug)
+miljostasjon-14 (Lindebergskogen)
+miljostasjon-15 (Frognerstranda)
+miljostasjon-16 (Bygdøy)
+miljostasjon-17 (Høybråten)
