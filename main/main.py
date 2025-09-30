@@ -135,7 +135,9 @@ if __name__ == "__main__":
             )
 
         # 3) Schedule aggregator + uploader + webcam
+        # Kick off an early upload ~90s after boot so first couple of samples get sent quickly
         schedule.every(30).seconds.do(aggregate_once)
+        threading.Timer(60.0, upload_once).start()
         schedule.every(SCHEDULE_SECONDS).seconds.do(upload_once)
         schedule.every().day.at(CAPTURE_TIME).do(webcam_job)
 
