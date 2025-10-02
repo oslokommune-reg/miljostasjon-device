@@ -255,35 +255,39 @@ def _list_serial_ports() -> List[str]:
 def _read_probe_frame(
     port: str, baud: int = DEFAULT_BAUD, timeout: int = DEFAULT_TIMEOUT
 ) -> Dict[str, str]:
-    """Read a short sample to get PID, SER#, and clues to classify the device."""
+    """Probe a port for up to PROBE_SECONDS, accumulating any key/value pairs seen.
+    Does NOT require seeing 'PID' to return data; this is robust for SmartShunt which
+    often emits H1..H18 before the PID appears in a subsequent frame.
+    """
     try:
         ser = Serial(port, baud, timeout=timeout)
         if not ser.isOpen():
             ser.open()
 
-        data: Dict[str, str] = {}
-        collecting = False
+        sample: Dict[str, str] = {}
         start = time.time()
 
         while time.time() - start < PROBE_SECONDS:
             line = ser.readline().decode("latin-1", errors="ignore").strip()
             if not line:
                 continue
-            if line.startswith("PID"):
-                collecting = True
-                data = {}
-            if collecting:
-                parts = line.split(maxsplit=1)
-                if len(parts) == 2:
-                    k, v = parts
-                    data[k.strip()] = v.strip()
-            # Stop early if we see the frame terminator (Checksum)
-            if line.lower().startswith("checksum"):
-                # We have at least one complete frame
-                break
+
+            # Generic "KEY <space> VALUE" parsing
+            parts = line.split(maxsplit=1)
+            if len(parts) == 2:
+                k, v = parts[0].strip(), parts[1].strip()
+
+                # Skip storing checksum value; it's just a frame marker
+                if k.lower().startswith("checksum"):
+                    # seeing checksum means a frame boundary – but we just keep accumulating
+                    # since we want any keys we can observe during the probe window
+                    continue
+
+                # Accumulate last-seen value per key
+                sample[k] = v
 
         ser.close()
-        return data
+        return sample
     except Exception as e:
         log.error(f"Probe failed on {port}: {e}")
         return {}
@@ -312,14 +316,21 @@ def discover_devices() -> List[Tuple[str, Dict[str, str]]]:
         We need SER# for stable ordering; devices without SER# will be placed last.
     """
     found: List[Tuple[str, Dict[str, str]]] = []
-    for p in _list_serial_ports():
+    ports = _list_serial_ports()
+    log.info(f"Probing ports: {ports}")
+
+    for p in ports:
+        log.info(f"Probing port {p}...")
         sample = _read_probe_frame(p)
-        if not sample.get("PID"):
-            log.debug(f"Skipping {p} (no PID). Keys={list(sample.keys())}")
+
+        if not sample:
+            log.debug(
+                f"Skipping {p} (no data seen during probe). Keys={list(sample.keys())}"
+            )
             continue
 
         if _is_shunt_signature(sample):
-            # Accept shunt without SER#
+            # Accept shunt without PID or SER#
             found.append((p, sample))
             continue
 
@@ -331,7 +342,9 @@ def discover_devices() -> List[Tuple[str, Dict[str, str]]]:
             found.append((p, sample))
             continue
 
+        # Not recognized as shunt or charger
         log.debug(f"Skipping {p} (unknown signature). Keys={list(sample.keys())}")
+
     return found
 
 
