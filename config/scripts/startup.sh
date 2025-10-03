@@ -2,6 +2,7 @@
 
 # Set dir to local dir
 SCRIPT_DIR=$(dirname "$0")
+cd "$SCRIPT_DIR"                               # ensure we run from script dir
 echo "$PWD"
 
 # Function to check if TeamViewer daemon is active
@@ -63,15 +64,13 @@ set_env_variables() {
 set_env_variables 'dev.env'
 set_env_variables 'prod.env' 
 
-# Function to clone or pull a repository
+# Function to clone repo if missing (no pull here)
 function clone_or_pull() {
     local repo_name=$1
     local repo_url=$2
 
-    if [ -d "$repo_name" ]; then
-        echo "Repository exists. Updating..."
-        cd "$repo_name" && git pull
-        cd ..
+    if [ -d "$repo_name/.git" ]; then
+        echo "Repository exists (no pull here)."
     else
         echo "Cloning repository..."
         git clone "$repo_url" "$repo_name"
@@ -79,16 +78,45 @@ function clone_or_pull() {
 }
 
 # Perform Git operations
-clone_or_pull $REPO_NAME $REPO_URL
-cd $REPO_NAME 
+clone_or_pull "$REPO_NAME" "$REPO_URL"
+cd "$REPO_NAME"
 
 # Clean cache
 sudo apt-get clean
 
-# Remove all unused docker images
-sudo docker image prune -a -f
-
 # Update all systemctl daemon in case any changes have been made (testing)
 sudo systemctl daemon-reload
 
-sudo -E docker compose up --build --remove-orphans --force-recreate
+# -------- Conditional rebuild only when code changed --------
+git fetch --quiet                                 # refresh refs only
+LOCAL="$(git rev-parse HEAD)"                     # current commit
+REMOTE="$(git rev-parse @{u} 2>/dev/null || echo "$LOCAL")"  # upstream (fallback)
+
+if [ "$LOCAL" != "$REMOTE" ]; then                # remote has new code
+    git pull --ff-only                            # update worktree
+    sudo -E docker compose down --remove-orphans || true   # stop project
+    sudo -E docker compose build --pull           # rebuild image (pull newer base)
+    sudo -E docker compose up -d --force-recreate --remove-orphans  # start fresh
+else
+    sudo -E docker compose up -d --remove-orphans # ensure running; no rebuild
+fi
+# ------------------------------------------------------------
+
+# -------- Auto-cleanup (safe, cache-friendly) ---------------
+sudo docker image prune -f                        # dangling only (keep cache)
+
+DOCKER_DIR="${DOCKER_DIR:-/var/lib/docker}"       # docker data dir
+FREE_MB=$(df -Pm "$DOCKER_DIR" | awk 'NR==2{print $4}')
+THRESHOLD_MB=2048                                 # 2 GB threshold
+
+if [ "$FREE_MB" -lt "$THRESHOLD_MB" ]; then       # low-space cleanup
+  sudo docker image prune -a -f --filter "until=720h"   # unused >30d
+  sudo docker builder prune -f --filter "until=720h"    # old build cache
+  sudo docker network prune -f                          # unused networks
+fi
+
+if [ "$(date +%d)" = "01" ]; then                 # monthly housekeeping
+  sudo docker image prune -a -f --filter "until=720h"
+  sudo docker builder prune -f --filter "until=720h"
+fi
+# ------------------------------------------------------------
