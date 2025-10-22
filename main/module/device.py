@@ -8,7 +8,9 @@
 #     For ordering, devices without SER# are sorted last (tie-breaker: port).
 # - Each device has its own continuous reader thread.
 # - Frames are parsed using 'Checksum' as the end-of-frame marker.
-# - A shared dict holds the latest complete frame per role (updated by readers,
+# - Each reader MERGES keys across multiple frames into a rolling snapshot,
+#   so history fields (SmartShunt H17/H18, MPPT H19–H22) are reliably present.
+# - A shared dict holds the latest merged snapshot per role (updated by readers,
 #   consumed by main.py).
 # - File buffer and upload are encapsulated in FileBuffer.
 # ------------------------------------------------------------
@@ -45,7 +47,7 @@ DEFAULT_BAUD = 19200
 DEFAULT_TIMEOUT = 3  # seconds
 
 # Probe window per port at startup (fixed)
-PROBE_SECONDS = 30  # increase if a device needs longer to emit a full frame
+PROBE_SECONDS = 30  # increase to 45 if a device needs longer to emit a full frame
 
 # Freshness window used by aggregator to include a device into an entry (fixed)
 FRESHNESS_SECONDS = 120  # seconds
@@ -60,6 +62,16 @@ PID_TO_ROLE = {
     "0xA057": "charger",  # MPPT
     "0xA389": "loadlogger",  # SmartShunt
 }
+
+REQUIRED_KEYS = {
+    "loadlogger": ("PID", "V", "I", "P", "SOC", "CE", "H17"),
+    "charger": ("PID", "SER#", "V", "I", "VPV", "PPV", "H22"),
+    "charger_2": ("PID", "SER#", "V", "I", "VPV", "PPV", "H22"),
+}
+
+
+# How long we keep individual merged keys before expiring them (set 0 to disable)
+MERGE_KEY_TTL_SECONDS = 600  # 10 minutes
 
 # Loggers
 log = setup_custom_logger("module.device")
@@ -277,10 +289,8 @@ def _read_probe_frame(
             if len(parts) == 2:
                 k, v = parts[0].strip(), parts[1].strip()
 
-                # Skip storing checksum value; it's just a frame marker
+                # Treat checksum as a frame boundary, but keep accumulating
                 if k.lower().startswith("checksum"):
-                    # seeing checksum means a frame boundary – but we just keep accumulating
-                    # since we want any keys we can observe during the probe window
                     continue
 
                 # Accumulate last-seen value per key
@@ -388,14 +398,18 @@ def classify_roles(devices: List[Tuple[str, Dict[str, str]]]) -> List[Tuple[str,
 
 
 # --------------------
-# Continuous VE.Direct reader
+# Continuous VE.Direct reader (merged snapshot)
 # --------------------
 class ReaderThread(threading.Thread):
     """
     Continuous VE.Direct reader for a single serial port.
-    - Frame start: first 'PID' line after any idle
-    - Frame end: 'Checksum' (case-insensitive)
-    - On complete frame: writes latest frame into shared dict (by role)
+
+    Strategy:
+      - Start collecting when we see 'PID'
+      - A 'Checksum' line marks end-of-frame
+      - Each complete frame is parsed into a dict and then MERGED into a rolling 'merged' snapshot.
+      - For each key, we also store a per-key timestamp (for optional TTL cleanup).
+      - The public output (latest_frames[role]) is the merged snapshot + a transport timestamp '_ts'.
     """
 
     def __init__(
@@ -415,6 +429,44 @@ class ReaderThread(threading.Thread):
         self.stop_event = threading.Event()
         self.logger = setup_custom_logger(role)
 
+        # rolling merged snapshot + per-key timestamps
+        self._merged: Dict[str, str] = {}
+        self._merged_key_ts: Dict[str, float] = {}
+
+        # cache required keys for this role
+        self._required_keys = set(REQUIRED_KEYS.get(role, ()))
+
+    def _now_iso(self) -> str:
+        return datetime.now(get_localzone()).isoformat()
+
+    def _now_ts(self) -> float:
+        return time.time()
+
+    def _merge_frame(self, frame: Dict[str, str]):
+        """Merge observed keys from a complete frame into rolling snapshot."""
+        ts = self._now_ts()
+        for k, v in frame.items():
+            self._merged[k] = v
+            self._merged_key_ts[k] = ts
+
+        # optional: expire stale keys
+        if MERGE_KEY_TTL_SECONDS > 0:
+            cutoff = ts - MERGE_KEY_TTL_SECONDS
+            stale = [k for k, t in self._merged_key_ts.items() if t < cutoff]
+            for k in stale:
+                self._merged_key_ts.pop(k, None)
+                self._merged.pop(k, None)
+
+        # publish merged snapshot
+        self.latest_frames[self.role] = {**self._merged, "_ts": self._now_iso()}
+
+    def _frame_has_required(self) -> bool:
+        """Check if merged snapshot satisfies role's must-have keys."""
+        if not self._required_keys:
+            return True
+        snap_keys = set(self._merged.keys())
+        return self._required_keys.issubset(snap_keys)
+
     def run(self):
         backoff = 0.5
         while not self.stop_event.is_set():
@@ -426,32 +478,56 @@ class ReaderThread(threading.Thread):
                 collecting = False
                 frame: Dict[str, str] = {}
 
+                # publish any pre-existing merged snapshot (useful after restart)
+                if self._merged:
+                    self.latest_frames[self.role] = {
+                        **self._merged,
+                        "_ts": self._now_iso(),
+                    }
+
                 while not self.stop_event.is_set():
-                    line = ser.readline().decode("latin-1", errors="ignore").strip()
+                    raw = ser.readline()
+                    if not raw:
+                        continue
+                    line = raw.decode("latin-1", errors="ignore").strip()
                     if not line:
                         continue
-                    if line.startswith("PID"):
+
+                    # Godta TAB eller SPACE mellom key og value
+                    if "\t" in line:
+                        parts = line.split("\t", maxsplit=1)
+                    else:
+                        parts = line.split(maxsplit=1)
+
+                    # Start en ny frame enten når vi ser PID
+                    # ELLER når vi ser første gyldige key/value (history-frame uten PID)
+                    if line.startswith("PID") or (
+                        not collecting
+                        and len(parts) == 2
+                        and parts[0]
+                        and parts[0].lower() != "checksum"
+                    ):
                         collecting = True
                         frame = {}
 
-                    if collecting:
-                        parts = line.split(maxsplit=1)
-                        if len(parts) == 2:
-                            k, v = parts
-                            # 'Checksum' indicates a complete frame boundary
-                            if k.lower().startswith("checksum"):
-                                collecting = False
-                                # Store the latest complete frame with a local timestamp
-                                frame_ts = datetime.now(get_localzone()).isoformat()
-                                if "PID" in frame:
-                                    self.latest_frames[self.role] = {
-                                        **frame,
-                                        "_ts": frame_ts,
-                                    }
-                                frame = {}
-                                continue
-                            else:
-                                frame[k.strip()] = v.strip()
+                    if not collecting:
+                        continue
+
+                    if len(parts) == 2:
+                        k, v = parts[0].strip(), parts[1].strip()
+
+                        # Slutt på frame: Checksum
+                        if k.lower().startswith("checksum"):
+                            collecting = False
+                            if frame:
+                                self._merge_frame(
+                                    frame
+                                )  # MERGE selv om frame ikke har PID
+                            frame = {}
+                            continue
+
+                        # Vanlig key/value
+                        frame[k] = v
 
                 ser.close()
                 backoff = 0.5  # reset after a successful session
