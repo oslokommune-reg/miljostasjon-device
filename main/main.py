@@ -31,6 +31,13 @@ SCHEDULE_SECONDS = 300  # upload interval in seconds
 CAPTURE_TIME = "07:25"  # daily webcam capture (HH:MM, local time)
 STARTUP_DELAY = 20  # startup delay in seconds (allow NTP/udev settle)
 
+# --------------------
+# PROTOTYPE: startup webcam capture window (keeps existing daily capture as-is)
+# --------------------
+STARTUP_CAPTURE_ENABLED = True
+STARTUP_CAPTURE_WINDOW_START = "07:00"  # inclusive
+STARTUP_CAPTURE_WINDOW_END = "17:30"  # exclusive
+
 BUFFER_PATH = "/container_storage/temporary_device_data.json"
 
 # Extra warmup so ReaderThread rekker å "merge" inn H17/H18/H22 før vi begynner å samle
@@ -41,7 +48,6 @@ REQUIRED_KEYS = {
     "charger": ("PID", "SER#", "V", "I", "VPV", "PPV", "H22"),
     "charger_2": ("PID", "SER#", "V", "I", "VPV", "PPV", "H22"),
 }
-
 
 # --------------------
 # Loggers / Globals
@@ -82,6 +88,23 @@ def _age_seconds(now: datetime, ts_iso: str) -> float:
         return float("inf")
 
 
+# PROTOTYPE helpers (startup capture window)
+def _hhmm_to_hour_min(hhmm: str) -> tuple[int, int]:
+    h, m = hhmm.split(":")
+    return int(h), int(m)
+
+
+def _within_startup_capture_window(now: datetime) -> bool:
+    """
+    PROTOTYPE: returns True if now is within [START, END) (local time).
+    """
+    sh, sm = _hhmm_to_hour_min(STARTUP_CAPTURE_WINDOW_START)
+    eh, em = _hhmm_to_hour_min(STARTUP_CAPTURE_WINDOW_END)
+    start = now.replace(hour=sh, minute=sm, second=0, microsecond=0)
+    end = now.replace(hour=eh, minute=em, second=0, microsecond=0)
+    return start <= now < end
+
+
 # --------------------
 # Jobs
 # --------------------
@@ -93,9 +116,7 @@ def aggregate_once():
     """
     # Varm opp litt ekstra etter boot for å sikre at history-felter har rukket å komme
     if time.time() - _boot_time < (STARTUP_DELAY + AGGREGATOR_WARMUP_SECONDS):
-        main_logger.info(
-            "Aggregator warmup window not elapsed yet; skipping this tick."
-        )
+        main_logger.info("Aggregator warmup window not elapsed yet; skipping this tick.")
         return
 
     now = datetime.now(get_localzone())
@@ -136,9 +157,7 @@ def aggregate_once():
         included.append(role)
 
     if not included:
-        main_logger.info(
-            f"No fresh/ready frames for aggregation window; dropped={dropped}"
-        )
+        main_logger.info(f"No fresh/ready frames for aggregation window; dropped={dropped}")
         return
 
     buffer.append(entry)
@@ -159,15 +178,36 @@ def webcam_job():
     main_logger.info(f"Daily webcam capture triggered at {CAPTURE_TIME}.")
 
 
+def webcam_startup_job():
+    # PROTOTYPE: separate log message so it's easy to spot in logs
+    t = threading.Thread(target=webcam.trigger, daemon=True)
+    t.start()
+    main_logger.info(
+        f"PROTOTYPE: Startup webcam capture triggered (window {STARTUP_CAPTURE_WINDOW_START}-{STARTUP_CAPTURE_WINDOW_END})."
+    )
+
+
 # --------------------
 # Bootstrap
 # --------------------
 if __name__ == "__main__":
     try:
-        main_logger.info(
-            f"Delaying startup for {STARTUP_DELAY} seconds to allow time sync..."
-        )
+        main_logger.info(f"Delaying startup for {STARTUP_DELAY} seconds to allow time sync...")
         time.sleep(STARTUP_DELAY)
+
+        # PROTOTYPE: take a photo at boot if time is between 07:00 and 07:30 (local time)
+        if STARTUP_CAPTURE_ENABLED:
+            try:
+                now = datetime.now(get_localzone())
+                if _within_startup_capture_window(now):
+                    webcam_startup_job()
+                else:
+                    main_logger.info(
+                        f"PROTOTYPE: Startup webcam capture skipped; now={now.strftime('%H:%M')} not in "
+                        f"{STARTUP_CAPTURE_WINDOW_START}-{STARTUP_CAPTURE_WINDOW_END}."
+                    )
+            except Exception as e:
+                main_logger.warning(f"PROTOTYPE: Startup webcam capture check failed: {e}")
 
         # 1) Discover devices (ports + samples)
         devs = discover_devices()
