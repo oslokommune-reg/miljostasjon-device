@@ -6,7 +6,7 @@ set +a
 
 SRC_IMAGE_NAME="2024-11-19-raspios-bookworm-arm64.img"
 
-rm miljostasjon-pi.img
+rm -f miljostasjon-pi.img
 echo "Removed old image from working directory"
 
 cp ./images/$SRC_IMAGE_NAME miljostasjon-pi.img
