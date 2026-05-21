@@ -24,6 +24,11 @@ StandardError=syslog
 WantedBy=graphical.target
 EOF
 
+[Unit]
+Description=Startup procedure
+After=network-online.target docker.service
+Wants=network-online.target
+
 
 sudo systemctl daemon-reload
 sudo systemctl enable $SERVICE_NAME.service
