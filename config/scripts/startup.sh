@@ -1,122 +1,163 @@
 #!/bin/bash
+# ============================================================
+# Miljostasjon startup script
+# Runs at boot via systemd (miljostasjon-startup.service)
+# ============================================================
 
-# Set dir to local dir
-SCRIPT_DIR=$(dirname "$0")
-cd "$SCRIPT_DIR"                               # ensure we run from script dir
-echo "$PWD"
+# Run from the directory the script lives in (resolved to absolute path)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR" || { echo "ERROR: cannot cd into script dir"; exit 1; }
+echo "Running from: $PWD"
 
-# Function to check if TeamViewer daemon is active
+# ------------------------------------------------------------
+# TeamViewer daemon
+# ------------------------------------------------------------
 is_teamviewer_daemon_active() {
-    if systemctl is-active --quiet teamviewerd; then
-        echo "TeamViewer daemon is already active."
-        return 0
-    else
-        echo "TeamViewer daemon is not active."
-        return 1
-    fi
+    systemctl is-active --quiet teamviewerd
 }
 
-# Start TeamViewer daemon if not active
 if ! is_teamviewer_daemon_active; then
     echo "Starting TeamViewer daemon..."
     sudo teamviewer daemon enable
     sudo teamviewer daemon start
-    echo "TeamViewer daemon started."
 else
-    echo "No need to start TeamViewer daemon. It's already running."
+    echo "TeamViewer daemon already running."
 fi
 
 # Assign host to Teamviewer client using token
 # ./scripts/enroll_teamviewer_host.sh
 
+# ------------------------------------------------------------
+# Load configuration (REPO_NAME, REPO_URL, ...)
+# ------------------------------------------------------------
 config_path="./scripts/config.sh"
 fallback_config_path="./config.sh"
 
 if [ -f "$config_path" ]; then
-    # If the config file exists in the scripts directory, use it
+    # shellcheck disable=SC1090
     . "$config_path"
     echo "Loaded configuration from $config_path"
 elif [ -f "$fallback_config_path" ]; then
-    # If the config file exists in the current directory, use it
+    # shellcheck disable=SC1090
     . "$fallback_config_path"
     echo "Loaded configuration from $fallback_config_path"
 else
-    # If neither file exists, print an error message
-    echo "Error: Configuration file not found in either path."
+    echo "ERROR: Configuration file not found in either path."
     exit 1
 fi
 
-# Load secrets for each environment
+# ------------------------------------------------------------
+# Load env files (secrets)
+# NOTE: env files live in the user's home directory, one level
+# above this script (~/dev.env, ~/prod.env), not inside ~/scripts.
+# ------------------------------------------------------------
 set_env_variables() {
     local env_file=$1
-
     if [ -f "$env_file" ]; then
         echo "Setting environment variables from $env_file"
-        set -a # Automatically export all variables
+        set -a
+        # shellcheck disable=SC1090
         source "$env_file"
         set +a
     else
-        echo "Environment file $env_file not found."
+        echo "WARNING: Environment file $env_file not found."
     fi
 }
 
-# Set environment variable for dev and prod
-set_env_variables 'dev.env'
-set_env_variables 'prod.env' 
+set_env_variables '../dev.env'
+set_env_variables '../prod.env'
 
-# Function to clone repo if missing (no pull here)
-function clone_or_pull() {
-    local repo_name=$1
-    local repo_url=$2
+# Sanity check: warn loudly if the variables compose.yml needs are empty.
+# Empty values cause silent failures like 'Invalid URL /power: No scheme supplied'.
+if [ -z "${PROD_API_GATEWAY_MILJOSTASJON_URL:-}" ] || [ -z "${PROD_API_GATEWAY_MILJOSTASJON_KEY:-}" ]; then
+    echo "WARNING: PROD_API_GATEWAY_MILJOSTASJON_URL or _KEY is empty. Check ../prod.env."
+fi
 
-    if [ -d "$repo_name/.git" ]; then
-        echo "Repository exists (no pull here)."
-    else
-        echo "Cloning repository..."
-        git clone "$repo_url" "$repo_name"
+# ------------------------------------------------------------
+# Git: clone if missing, fetch, rebuild only on new commits
+# ------------------------------------------------------------
+BRANCH="${REPO_BRANCH:-main}"
+
+# Clone if the repo doesn't exist yet
+if [ ! -d "$REPO_NAME/.git" ]; then
+    echo "Cloning $REPO_URL (branch $BRANCH)..."
+    if ! git clone --branch "$BRANCH" "$REPO_URL" "$REPO_NAME"; then
+        echo "ERROR: git clone failed; aborting startup."
+        exit 1
     fi
-}
+fi
 
-# Perform Git operations
-clone_or_pull "$REPO_NAME" "$REPO_URL"
-cd "$REPO_NAME"
+REPO_PATH="$(realpath "$REPO_NAME")"
 
-# Clean cache
+# Whitelist the repo for ALL users (writes to /etc/gitconfig).
+# Without this, 'git fetch' silently fails when systemd runs the script as
+# root and the repo is owned by the regular user (or vice versa).
+# Idempotent — git deduplicates entries on its own.
+git config --system --add safe.directory "$REPO_PATH" 2>/dev/null || true
+
+cd "$REPO_PATH" || { echo "ERROR: cannot cd into $REPO_PATH"; exit 1; }
+
+echo "Currently at: $(git rev-parse --short HEAD) — $(git log -1 --format=%s)"
+
+# General housekeeping (runs regardless of pull result)
 sudo apt-get clean
-
-# Update all systemctl daemon in case any changes have been made (testing)
 sudo systemctl daemon-reload
 
-# -------- Conditional rebuild only when code changed --------
-git fetch --quiet                                 # refresh refs only
-LOCAL="$(git rev-parse HEAD)"                     # current commit
-REMOTE="$(git rev-parse @{u} 2>/dev/null || echo "$LOCAL")"  # upstream (fallback)
+# Fetch — intentionally NOT --quiet so failures appear in journalctl
+if ! git fetch origin "$BRANCH"; then
+    echo "WARNING: git fetch failed; running existing containers without update."
+    sudo -E docker compose up -d --remove-orphans
+    exit 0
+fi
 
-if [ "$LOCAL" != "$REMOTE" ]; then                # remote has new code
-    git pull --ff-only                            # update worktree
-    sudo -E docker compose down --remove-orphans || true   # stop project
-    sudo -E docker compose build --pull           # rebuild image (pull newer base)
-    sudo -E docker compose up -d --force-recreate --remove-orphans  # start fresh
+LOCAL="$(git rev-parse HEAD)"
+REMOTE="$(git rev-parse "origin/$BRANCH")"
+
+if [ "$LOCAL" = "$REMOTE" ]; then
+    echo "Already up to date at $LOCAL; ensuring containers are running."
+    sudo -E docker compose up -d --remove-orphans
 else
-    sudo -E docker compose up -d --remove-orphans # ensure running; no rebuild
+    echo "New commits on origin/$BRANCH: $LOCAL -> $REMOTE"
+
+    if ! git pull --ff-only origin "$BRANCH"; then
+        echo "ERROR: git pull --ff-only failed (likely non-fast-forward). Manual fix needed."
+        sudo -E docker compose up -d --remove-orphans
+        exit 1
+    fi
+
+    echo "Now at: $(git rev-parse --short HEAD) — $(git log -1 --format=%s)"
+
+    sudo -E docker compose down --remove-orphans || true
+    sudo -E docker compose build --pull
+    sudo -E docker compose up -d --force-recreate --remove-orphans
 fi
+
 # ------------------------------------------------------------
+# Docker auto-cleanup (safe, cache-friendly)
+# ------------------------------------------------------------
+echo "Running docker cleanup..."
 
-# -------- Auto-cleanup (safe, cache-friendly) ---------------
-sudo docker image prune -f                        # dangling only (keep cache)
+# Always: cheap cleanups
+sudo docker image prune -f                                  # dangling images
+sudo docker container prune -f --filter "until=720h"        # stopped >30d
 
-DOCKER_DIR="${DOCKER_DIR:-/var/lib/docker}"       # docker data dir
+DOCKER_DIR="${DOCKER_DIR:-/var/lib/docker}"
 FREE_MB=$(df -Pm "$DOCKER_DIR" | awk 'NR==2{print $4}')
-THRESHOLD_MB=2048                                 # 2 GB threshold
+THRESHOLD_MB=3072                                           # 3 GB threshold
 
-if [ "$FREE_MB" -lt "$THRESHOLD_MB" ]; then       # low-space cleanup
-  sudo docker image prune -a -f --filter "until=720h"   # unused >30d
-  sudo docker builder prune -f --filter "until=720h"    # old build cache
-  sudo docker network prune -f                          # unused networks
+echo "Free space at $DOCKER_DIR: ${FREE_MB:-unknown}MB (threshold: ${THRESHOLD_MB}MB)"
+
+if [ "${FREE_MB:-0}" -lt "$THRESHOLD_MB" ]; then
+    echo "Low disk space — running aggressive prune (>30d only)."
+    sudo docker image prune -a -f --filter "until=720h"
+    sudo docker builder prune -f --filter "until=720h"
+    sudo docker network prune -f
 fi
 
-if [ "$(date +%d)" = "01" ]; then                 # monthly housekeeping
-  sudo docker image prune -a -f --filter "until=720h"
-  sudo docker builder prune -f --filter "until=720h"
+if [ "$(date +%d)" = "01" ]; then
+    echo "Monthly housekeeping prune."
+    sudo docker image prune -a -f --filter "until=720h"
+    sudo docker builder prune -f --filter "until=720h"
 fi
-# ------------------------------------------------------------
+
+echo "Startup complete."

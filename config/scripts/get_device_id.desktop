@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Vis CPU-ID
+Comment=Henter CPU serial ID fra denne Raspberry Pi
+Exec=bash -c 'ID=$(grep Serial /proc/cpuinfo | awk '"'"'{print $3}'"'"'); zenity --info --title="CPU Serial ID" --text="$ID" --no-markup 2>/dev/null || lxterminal -e bash -c "echo CPU ID: $(grep Serial /proc/cpuinfo | awk '"'"'{print $3}'"'"'); read -p \"Trykk Enter for aa lukke...\""'
+Icon=utilities-terminal
+Terminal=false
+Categories=Utility;

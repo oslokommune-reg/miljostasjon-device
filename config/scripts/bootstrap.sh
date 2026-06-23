@@ -9,6 +9,11 @@ export SCRIPT_PATH="/home/${USER}/scripts/startup.sh"
 # Make all scripts in ./scripts/ executable
 chmod u+x /home/${USER}/scripts/*.sh
 
+# Legg get_device_id på skrivebordet
+mkdir -p /home/${USER}/Desktop
+cp /home/${USER}/scripts/get_device_id.desktop /home/${USER}/Desktop/
+chmod +x /home/${USER}/Desktop/get_device_id.desktop
+
 echo "Creating systemd service..."
 cat <<EOF | sudo -E tee /etc/systemd/system/$SERVICE_NAME.service
 [Unit]
@@ -23,6 +28,11 @@ StandardError=syslog
 [Install]
 WantedBy=graphical.target
 EOF
+
+[Unit]
+Description=Startup procedure
+After=network-online.target docker.service
+Wants=network-online.target
 
 
 sudo systemctl daemon-reload
