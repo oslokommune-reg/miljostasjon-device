@@ -33,3 +33,20 @@ sudo sdm --customize miljostasjon-pi.img \
     --expand-root \
     --regen-ssh-host-keys \
     --restart
+
+# Pi Imager endrer PARTUUID i MBR men oppdaterer ikke fstab.
+# UUID sitter i filsystemet og preserveres av Pi Imager, så vi bruker det i stedet.
+echo "Konverterer fstab fra PARTUUID til UUID..."
+LOOP_FIX=$(sudo losetup --show -fP miljostasjon-pi.img)
+BOOT_UUID=$(sudo blkid -s UUID -o value "${LOOP_FIX}p1")
+ROOT_UUID=$(sudo blkid -s UUID -o value "${LOOP_FIX}p2")
+sudo mkdir -p /mnt/fstab_fix
+sudo mount "${LOOP_FIX}p2" /mnt/fstab_fix
+sudo sed -i \
+    -e "s|PARTUUID=[a-f0-9]\{8\}-01|UUID=${BOOT_UUID}|" \
+    -e "s|PARTUUID=[a-f0-9]\{8\}-02|UUID=${ROOT_UUID}|" \
+    /mnt/fstab_fix/etc/fstab
+echo "fstab oppdatert:"
+cat /mnt/fstab_fix/etc/fstab
+sudo umount /mnt/fstab_fix
+sudo losetup -d "${LOOP_FIX}"
