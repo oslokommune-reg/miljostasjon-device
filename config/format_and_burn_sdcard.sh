@@ -145,9 +145,25 @@ sudo fsck.vfat /dev/${SD_CARD}1
 # Burn image with SDM
 echo "Burning image with hostname $HOSTNAME..."
 if sudo sdm --burn /dev/$SD_CARD miljostasjon-pi.img --hostname "$HOSTNAME"; then
+    # sdm --burn endrer PARTUUID i MBR og cmdline.txt for unikhet,
+    # men oppdaterer ikke fstab i ext4-partisjonen. Gjør det her.
+    echo "Oppdaterer fstab med nytt PARTUUID..."
+    sudo mkdir -p /mnt/sdburn_boot /mnt/sdburn_root
+    sudo mount /dev/${SD_CARD}1 /mnt/sdburn_boot
+    NEW_DISKID=$(grep -oP 'root=PARTUUID=\K[a-f0-9]+' /mnt/sdburn_boot/cmdline.txt)
+    if [ -n "$NEW_DISKID" ]; then
+        sudo mount /dev/${SD_CARD}2 /mnt/sdburn_root
+        sudo sed -i "s/PARTUUID=[a-f0-9]\{8\}/PARTUUID=${NEW_DISKID}/g" /mnt/sdburn_root/etc/fstab
+        echo "fstab oppdatert med PARTUUID: ${NEW_DISKID}"
+        sudo umount /mnt/sdburn_root
+    else
+        echo "Advarsel: fant ikke PARTUUID i cmdline.txt, fstab ikke oppdatert"
+    fi
+    sudo umount /mnt/sdburn_boot
+
     # Create hostnames file directory if it doesn't exist
     mkdir -p "$(dirname "$HOSTNAMES_FILE")" 2>/dev/null
-    
+
     # Add hostname to tracking file
     echo "$HOSTNAME" >> "$HOSTNAMES_FILE"
     echo "Success! Image burned with hostname $HOSTNAME"

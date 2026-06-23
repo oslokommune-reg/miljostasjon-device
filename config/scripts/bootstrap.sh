@@ -18,6 +18,8 @@ echo "Creating systemd service..."
 cat <<EOF | sudo -E tee /etc/systemd/system/$SERVICE_NAME.service
 [Unit]
 Description=Startup procedure
+After=network-online.target docker.service
+Wants=network-online.target
 
 [Service]
 WorkingDirectory=/home/${USER}
@@ -28,11 +30,6 @@ StandardError=syslog
 [Install]
 WantedBy=graphical.target
 EOF
-
-[Unit]
-Description=Startup procedure
-After=network-online.target docker.service
-Wants=network-online.target
 
 
 sudo systemctl daemon-reload
