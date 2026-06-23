@@ -57,12 +57,21 @@ sudo mv miljostasjon-pi.img "$TIMESTAMPED_IMG"
 sudo chown "$(id -u):$(id -g)" "$TIMESTAMPED_IMG"
 
 # --- Kopier tilbake til Windows-mappen om nødvendig ---
+# Bruker powershell.exe Copy-Item i stedet for cp for store filer over WSL-grensen.
+# cp via /mnt/ feiler med I/O-feil på filer >~4GB; PowerShell er pålitelig.
 if [[ "$IS_WSL" == true && "$PROJECT_DIR" == /mnt/* ]]; then
-    echo "==> Kopierer ferdig image tilbake til prosjektmappen"
-    cp "$TIMESTAMPED_IMG" "$PROJECT_DIR/$TIMESTAMPED_IMG"
-    FINAL_PATH="$PROJECT_DIR/$TIMESTAMPED_IMG"
+    OUT_DIR="$PROJECT_DIR/out"
+    mkdir -p "$OUT_DIR"
+    WIN_SRC="$(wslpath -w "$(pwd)/$TIMESTAMPED_IMG")"
+    WIN_DST="$(wslpath -w "$OUT_DIR/$TIMESTAMPED_IMG")"
+    echo "==> Kopierer ferdig image til $OUT_DIR"
+    powershell.exe -NoProfile -Command "Copy-Item -LiteralPath '$WIN_SRC' -Destination '$WIN_DST' -Force"
+    FINAL_PATH="$OUT_DIR/$TIMESTAMPED_IMG"
 else
-    FINAL_PATH="$(pwd)/$TIMESTAMPED_IMG"
+    OUT_DIR="$PROJECT_DIR/out"
+    mkdir -p "$OUT_DIR"
+    mv "$TIMESTAMPED_IMG" "$OUT_DIR/$TIMESTAMPED_IMG"
+    FINAL_PATH="$OUT_DIR/$TIMESTAMPED_IMG"
 fi
 
 echo
