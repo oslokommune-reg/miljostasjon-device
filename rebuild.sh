@@ -11,7 +11,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 # --- Last inn env-variabler som docker compose trenger ---
-for env_file in ~/dev.env ~/prod.env; do
+# Ved `sudo bash rebuild.sh` er ~ = /root, ikke brukerens hjemmappe.
+# Bruk SUDO_USER for å finne riktig mappe.
+REAL_HOME=$(eval echo "~${SUDO_USER:-$USER}")
+for env_file in "$REAL_HOME/dev.env" "$REAL_HOME/prod.env"; do
     if [ -f "$env_file" ]; then
         set -a; source "$env_file"; set +a
     fi
