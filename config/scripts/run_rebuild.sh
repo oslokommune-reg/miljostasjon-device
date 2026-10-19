@@ -1,18 +1,8 @@
 #!/bin/bash
 # Kjøres fra skrivebordssnarveien "Bygg Docker på nytt".
-# Spør om bekreftelse og kjører rebuild.sh fra repoet som startup.sh har klonet.
+# Kjører rebuild.sh fra repoet som startup.sh har klonet.
 
 REPO_DIR="$HOME/scripts/miljostasjon-device"
-
-echo "Dette stopper containerne, sletter Docker-images og bygger alt på nytt."
-echo "Det kan ta 10-30 minutter. Stasjonen sender ikke data mens dette pågår."
-echo ""
-read -r -p "Vil du fortsette? [j/N] " svar
-if [[ ! "$svar" =~ ^[jJyY]$ ]]; then
-    echo "Avbrutt."
-    sleep 2
-    exit 0
-fi
 
 if [ ! -f "$REPO_DIR/rebuild.sh" ]; then
     echo "FEIL: Fant ikke $REPO_DIR/rebuild.sh"
