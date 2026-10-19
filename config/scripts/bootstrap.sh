@@ -9,10 +9,12 @@ export SCRIPT_PATH="/home/${USER}/scripts/startup.sh"
 # Make all scripts in ./scripts/ executable
 chmod u+x /home/${USER}/scripts/*.sh
 
-# Legg get_device_id på skrivebordet
+# Legg snarveier (CPU-ID og rebuild) på skrivebordet
 mkdir -p /home/${USER}/Desktop
-cp /home/${USER}/scripts/get_device_id.desktop /home/${USER}/Desktop/
-chmod +x /home/${USER}/Desktop/get_device_id.desktop
+for shortcut in get_device_id.desktop rebuild.desktop; do
+    cp /home/${USER}/scripts/${shortcut} /home/${USER}/Desktop/
+    chmod +x /home/${USER}/Desktop/${shortcut}
+done
 
 echo "Creating systemd service..."
 cat <<EOF | sudo -E tee /etc/systemd/system/$SERVICE_NAME.service
