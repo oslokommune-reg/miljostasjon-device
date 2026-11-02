@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Vedlikeholdsmodus
+Comment=Slår automatisk avslåing av eller på (maks 12 timer)
+Exec=bash -c '"$HOME/scripts/toggle_maintenance.sh"'
+Icon=preferences-system
+Terminal=true
+Categories=Utility;

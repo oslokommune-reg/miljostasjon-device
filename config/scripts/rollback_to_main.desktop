@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Tilbake til main
+Comment=Fjerner strømsikring (power-safety) og setter stasjonen tilbake til main
+Exec=bash -c '"$HOME/scripts/rollback_to_main.sh"'
+Icon=edit-undo
+Terminal=true
+Categories=Utility;

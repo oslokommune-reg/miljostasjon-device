@@ -1,4 +1,9 @@
 import logging
+import os
+
+# INFO by default: container logs end up on the SD card, and DEBUG every
+# 30 s is a large share of all writes. Set LOG_LEVEL=DEBUG when debugging.
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 
 
 def setup_custom_logger(name):
@@ -14,5 +19,5 @@ def setup_custom_logger(name):
         handler.setFormatter(formatter)
         logger.addHandler(handler)
 
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(LOG_LEVEL)
     return logger

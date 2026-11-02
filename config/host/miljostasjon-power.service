@@ -1,0 +1,18 @@
+# Installed by config/host/apply_host_config.sh (placeholders filled in there).
+[Unit]
+Description=Miljostasjon controlled shutdown before scheduled power cuts
+After=local-fs.target
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/default/miljostasjon-power
+ExecStart=/usr/bin/python3 -u @REPO_DIR@/power/power_agent.py \
+    --branch @BRANCH@ \
+    --bundled @REPO_DIR@/config/power_schedule.json \
+    --maintenance-flag @APP_HOME@/.miljostasjon-maintenance \
+    $POWER_AGENT_ARGS
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

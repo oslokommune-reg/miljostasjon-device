@@ -7,16 +7,31 @@ services:
    container_name: prod
    restart: always
    privileged: true
+   # init: forwards SIGTERM to python (PID 1 ignores it otherwise), so the
+   # app can do its final upload. Grace period > SHUTDOWN_UPLOAD_SECONDS.
+   init: true
+   stop_grace_period: 45s
    logging:
+     driver: local
      options:
-       max-size: 20m
+       max-size: 5m
+       max-file: "2"
+   # Fixed host path for the buffer. "~" was not expanded under systemd
+   # (no HOME), so the data ended up in different places depending on how
+   # compose was started.
    volumes:
-     - ~/dev_persistent_storage:/container_storage
+     - /var/lib/miljostasjon/data:/container_storage
+   # Webcam images and other temp files stay in RAM, not on the SD card.
+   tmpfs:
+     - /tmp
    environment:
      - DEVICE_ID=${DEVICE_ID}
      - API_GATEWAY_MILJOSTASJON_KEY=${PROD_API_GATEWAY_MILJOSTASJON_KEY}
      - API_GATEWAY_MILJOSTASJON_URL=${PROD_API_GATEWAY_MILJOSTASJON_URL}
      - SCHEDULE_SECONDS=300
+     - LOG_LEVEL=${LOG_LEVEL:-INFO}
+     # Test only: synthetic data, uploads disabled (see main/module/fake_devices.py)
+     - FAKE_DEVICES=${FAKE_DEVICES:-0}
    command: python3 main.py
 
  # Engangsjobb ved hver oppstart: kopierer config/scripts og skrivebords-

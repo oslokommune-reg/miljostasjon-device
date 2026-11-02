@@ -5,6 +5,10 @@ from tzlocal import get_localzone
 
 from module.utils.logger import setup_custom_logger
 
+# (connect, read) seconds. Without a timeout a dead connection can block
+# forever, and with it the upload and every later upload.
+REQUEST_TIMEOUT = (10, 30)
+
 # from utils.logger import setup_custom_logger
 
 logger = setup_custom_logger(__name__)
@@ -46,6 +50,7 @@ class ApiGatewayConnector:
             self.base_url + f"/{endpoint}",
             json=payload,
             headers={"x-api-key": self.api_key, "Content-Type": "application/json"},
+            timeout=REQUEST_TIMEOUT,
         )
 
         logger.info(f"Response status code: {response.status_code}")
@@ -73,6 +78,7 @@ class ApiGatewayConnector:
             self.base_url + f"/{endpoint}",
             data=payload,
             headers={"x-api-key": self.api_key, "Content-Type": "application/json"},
+            timeout=REQUEST_TIMEOUT,
         )
 
         logger.info(f"Response status code: {response.status_code}")
@@ -97,6 +103,7 @@ class ApiGatewayConnector:
         response = requests.get(
             url,
             headers={"x-api-key": self.api_key},
+            timeout=REQUEST_TIMEOUT,
         )
 
         logger.info(f"Response status code: {response.status_code}")

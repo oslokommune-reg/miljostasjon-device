@@ -12,12 +12,10 @@
 #   so history fields (SmartShunt H17/H18, MPPT H19–H22) are reliably present.
 # - A shared dict holds the latest merged snapshot per role (updated by readers,
 #   consumed by main.py).
-# - File buffer and upload are encapsulated in FileBuffer.
+# - Buffering and upload live in storage.py and uploader.py.
 # ------------------------------------------------------------
 
 import base64
-import fcntl
-import json
 import os
 import platform
 import threading
@@ -39,8 +37,6 @@ from module.utils.logger import setup_custom_logger
 apigateway_url = os.getenv("API_GATEWAY_MILJOSTASJON_URL")
 apigateway_key = os.getenv("API_GATEWAY_MILJOSTASJON_KEY")
 device_id = os.getenv("DEVICE_ID")
-
-BUFFER_PATH = "/container_storage/temporary_device_data.json"  # single persisted file
 
 # Serial defaults (fixed)
 DEFAULT_BAUD = 19200
@@ -172,84 +168,6 @@ class Webcam:
                 webcam_logger.error(f"Failed to send image: status={resp.status_code}")
         except FileNotFoundError:
             webcam_logger.error(f"Image not found: {image_path}")
-
-
-# --------------------
-# File buffer manager
-# --------------------
-class FileBuffer:
-    """Manages a JSON list buffer stored on disk with safe locking.
-    Path is typically /container_storage/temporary_device_data.json
-    """
-
-    def __init__(self, path: str):
-        self.path = path
-        os.makedirs(os.path.dirname(self.path), exist_ok=True)
-
-    def append(self, entry: Dict) -> None:
-        """Append one entry to the buffer file atomically with lock."""
-        try:
-            with open(self.path, "a+b") as f:
-                fcntl.flock(f, fcntl.LOCK_EX)
-                try:
-                    f.seek(0)
-                    raw = f.read().decode("utf-8") or ""
-                    if raw.strip():
-                        data = json.loads(raw)
-                        if not isinstance(data, list):
-                            data = []
-                    else:
-                        data = []
-                except json.JSONDecodeError:
-                    data = []
-
-                data.append(entry)
-
-                f.seek(0)
-                f.truncate(0)
-                f.write(json.dumps(data, indent=4).encode("utf-8"))
-                f.flush()
-        except Exception as e:
-            log.error(f"FileBuffer.append failed: {e}")
-
-    def upload_and_clear(self) -> bool:
-        """Upload the buffer to API and clear it only on success."""
-        try:
-            if not os.path.exists(self.path):
-                log.info("Buffer file not found; nothing to upload.")
-                return True
-
-            with open(self.path, "r+", encoding="utf-8") as f:
-                fcntl.flock(f, fcntl.LOCK_EX)
-                try:
-                    data = json.load(f)
-                except json.JSONDecodeError:
-                    data = []
-
-                if not data:
-                    log.info("No data to send.")
-                    return True
-
-                resp = ApiGatewayConnector(
-                    base_url=apigateway_url, api_key=apigateway_key
-                ).post_dict(
-                    endpoint="power",
-                    payload_parent_keys={"deviceId": device_id},
-                    data=data,
-                )
-                log.info(f"Upload status: {resp.status_code}")
-                if resp.status_code == 200:
-                    f.seek(0)
-                    json.dump([], f, indent=4)
-                    f.truncate()
-                    log.info("Data successfully sent and cleared from buffer.")
-                    return True
-                else:
-                    log.error(f"Upload failed with status: {resp.status_code}")
-                    return False
-        except Exception as e:
-            log.error(f"FileBuffer.upload_and_clear failed: {e}")
-            return False
 
 
 # --------------------

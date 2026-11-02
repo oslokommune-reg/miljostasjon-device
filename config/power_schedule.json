@@ -1,0 +1,11 @@
+{
+  "timezone": "Europe/Oslo",
+  "windows": [
+    { "start": "07:00", "end": "07:30" },
+    { "start": "13:00", "end": "13:10" }
+  ],
+  "shutdown_lead_minutes": 3,
+  "start_tolerance_minutes": 10,
+  "unsynced_max_uptime_minutes": 7,
+  "outside_window_grace_minutes": 10
+}

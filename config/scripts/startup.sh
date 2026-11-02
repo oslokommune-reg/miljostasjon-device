@@ -28,6 +28,28 @@ fi
 # ./scripts/enroll_teamviewer_host.sh
 
 # ------------------------------------------------------------
+# Docker self-repair
+# A power cut can leave Docker's network database with two "docker0"
+# bridges; dockerd then refuses to start ("networks have same bridge name")
+# and nothing runs until someone fixes it by hand. The database is
+# recreated automatically, so removing it is safe.
+# ------------------------------------------------------------
+ensure_docker() {
+    systemctl is-active --quiet docker && return 0
+    sudo systemctl start docker && sleep 3
+    systemctl is-active --quiet docker && return 0
+
+    if sudo journalctl -u docker -b --no-pager | grep -q "networks have same bridge name"; then
+        echo "Docker network state is corrupt; resetting it."
+        sudo systemctl stop docker.socket docker.service
+        sudo rm -f /var/lib/docker/network/files/local-kv.db
+        sudo systemctl reset-failed docker
+        sudo systemctl start docker
+    fi
+    systemctl is-active --quiet docker || echo "ERROR: Docker is not running."
+}
+
+# ------------------------------------------------------------
 # Load configuration (REPO_NAME, REPO_URL, ...)
 # ------------------------------------------------------------
 config_path="./scripts/config.sh"
@@ -119,38 +141,37 @@ if [ -z "${REPO_BRANCH:-}" ]; then
 fi
 echo "Tracking branch: $BRANCH"
 
-# General housekeeping (runs regardless of pull result)
-sudo apt-get clean
-sudo systemctl daemon-reload
-
 # Fetch — intentionally NOT --quiet so failures appear in journalctl
+UPDATED=0
 if ! git fetch origin "$BRANCH"; then
-    echo "WARNING: git fetch failed; running existing containers without update."
-    sudo -E docker compose up -d --remove-orphans
-    exit 0
+    echo "WARNING: git fetch failed; running existing version without update."
+elif [ "$(git rev-parse HEAD)" = "$(git rev-parse "origin/$BRANCH")" ]; then
+    echo "Already up to date at $(git rev-parse --short HEAD)."
+else
+    echo "New commits on origin/$BRANCH: $(git rev-parse --short HEAD) -> $(git rev-parse --short "origin/$BRANCH")"
+    if git pull --ff-only origin "$BRANCH"; then
+        UPDATED=1
+        echo "Now at: $(git rev-parse --short HEAD) — $(git log -1 --format=%s)"
+    else
+        echo "ERROR: git pull --ff-only failed (likely non-fast-forward). Manual fix needed."
+    fi
 fi
 
-LOCAL="$(git rev-parse HEAD)"
-REMOTE="$(git rev-parse "origin/$BRANCH")"
+# ------------------------------------------------------------
+# Power-safety host config (data dir, controlled shutdown, fewer SD
+# writes). Idempotent; only present on branches that have it.
+# ------------------------------------------------------------
+if [ -f config/host/apply_host_config.sh ]; then
+    sudo bash config/host/apply_host_config.sh || echo "WARNING: host config failed."
+fi
 
-if [ "$LOCAL" = "$REMOTE" ]; then
-    echo "Already up to date at $LOCAL; ensuring containers are running."
-    sudo -E docker compose up -d --remove-orphans
-else
-    echo "New commits on origin/$BRANCH: $LOCAL -> $REMOTE"
+ensure_docker
 
-    if ! git pull --ff-only origin "$BRANCH"; then
-        echo "ERROR: git pull --ff-only failed (likely non-fast-forward). Manual fix needed."
-        sudo -E docker compose up -d --remove-orphans
-        exit 1
-    fi
-
-    echo "Now at: $(git rev-parse --short HEAD) — $(git log -1 --format=%s)"
-
+if [ "$UPDATED" = 1 ]; then
     sudo -E docker compose down --remove-orphans || true
     sudo -E docker compose build --pull
-    sudo -E docker compose up -d --force-recreate --remove-orphans
 fi
+sudo -E docker compose up -d --remove-orphans
 
 # ------------------------------------------------------------
 # Remove the old daily-reboot cron job. Older images added
