@@ -167,9 +167,18 @@ fi
 
 ensure_docker
 
-if [ "$UPDATED" = 1 ]; then
+# Build when the checked-out commit differs from the last successful build,
+# not only after a pull here: a manual branch switch (test install,
+# "Tilbake til main") must also get a fresh image.
+# No --pull: a new base image would force a full 10+ minute rebuild inside
+# a short power window. rebuild.sh still pulls when run on purpose.
+BUILT_STAMP=".git/miljostasjon-built-commit"
+if [ "$UPDATED" = 1 ] || [ "$(cat "$BUILT_STAMP" 2>/dev/null)" != "$(git rev-parse HEAD)" ]; then
+    echo "Code differs from last build; rebuilding."
     sudo -E docker compose down --remove-orphans || true
-    sudo -E docker compose build --pull
+    if sudo -E docker compose build; then
+        git rev-parse HEAD > "$BUILT_STAMP"
+    fi
 fi
 sudo -E docker compose up -d --remove-orphans
 

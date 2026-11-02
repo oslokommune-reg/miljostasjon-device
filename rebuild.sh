@@ -32,6 +32,7 @@ docker image prune -f
 
 echo "==> Bygger på nytt (--no-cache --pull)..."
 docker compose build --pull --no-cache
+git rev-parse HEAD > .git/miljostasjon-built-commit 2>/dev/null || true  # see startup.sh
 
 echo "==> Starter containere..."
 docker compose up -d

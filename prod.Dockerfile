@@ -12,11 +12,14 @@ RUN apt-get update && apt-get install ffmpeg libsm6 libxext6 -y && \
 # Set the working directory in the container
 WORKDIR /usr/src/app
 
-# Copy the current directory contents into the container at /usr/src/app
-COPY ./main /usr/src/app
-
-# Install any needed packages specified in requirements.txt
+# Install packages before copying the code, so a code-only change reuses
+# the cached pip layer: rebuilds take seconds instead of minutes, which
+# matters in 10-minute power windows and saves SD card writes.
+COPY ./main/requirements.txt /usr/src/app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the application code
+COPY ./main /usr/src/app
 
 # Define environment variable
 ENV NAME prod
