@@ -14,7 +14,7 @@ and shuts down cleanly before scheduled cuts.
 | Upload | Batches of 100, request timeouts, background thread. Final upload (max 25 s) on SIGTERM. |
 | Clock | No RTC: readings are not stored until NTP has synced (max 3 min wait). |
 | Controlled shutdown | `miljostasjon-power.service` stops the app container and powers off `shutdown_lead_minutes` before the window ends. |
-| SD card writes | Swap off, journal capped at 64 MB and synced every 10 min, `/tmp` in RAM, apt/man-db timers off, app logs at INFO with a capped log driver, no rebuild or `--force-recreate` on every boot. |
+| SD card writes | Swap off, journal capped at 200 MB and synced every 10 min, `/tmp` in RAM, apt/man-db timers off, app logs at INFO with a capped log driver, no rebuild or `--force-recreate` on every boot. |
 | Self-repair | `startup.sh` resets Docker's network database when it is corrupt, and removes stale git lock files. |
 
 ### Shutdown rules (`power/power_schedule.py`)

@@ -8,7 +8,7 @@
 #
 # - stable data directory for the app buffer (+ migrate old JSON buffers)
 # - controlled shutdown service (miljostasjon-power.service)
-# - fewer SD card writes: no swap, capped journal, /tmp in RAM, no apt/man-db timers
+# - fewer SD card writes: no swap, capped journal (200M), /tmp in RAM, no apt/man-db timers
 # - startup service waits for network and Docker
 # ============================================================
 
@@ -54,8 +54,8 @@ mkdir -p /etc/systemd/journald.conf.d
 if ! cmp -s "$HOST_DIR/journald-miljostasjon.conf" /etc/systemd/journald.conf.d/50-miljostasjon.conf; then
     install -m 644 "$HOST_DIR/journald-miljostasjon.conf" /etc/systemd/journald.conf.d/50-miljostasjon.conf
     systemctl restart systemd-journald
-    journalctl --vacuum-size=64M >/dev/null 2>&1 || true
-    echo "Journal capped"
+    journalctl --vacuum-size=200M >/dev/null 2>&1 || true
+    echo "Journal capped at 200M"
 fi
 
 if [ ! -f /etc/systemd/system/tmp.mount ] && [ -f /usr/share/systemd/tmp.mount ]; then
