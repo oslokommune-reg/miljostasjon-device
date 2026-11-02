@@ -38,16 +38,16 @@ class Uploader:
         """Upload batches until the buffer is empty, an error occurs, or the
         monotonic `deadline` passes. Returns True if the buffer was emptied."""
         if not self.enabled:
-            log.info(f"Upload disabled; {self.buffer.count()} entries buffered.")
+            log.debug(f"Upload disabled; {self.buffer.count()} entries buffered.")
             return False
         if not self._running.acquire(blocking=False):
-            log.info("Upload already running; skipping.")
+            log.debug("Upload already running; skipping.")
             return False
         try:
             while True:
                 batch = self.buffer.oldest(BATCH_SIZE)
                 if not batch:
-                    log.info("Nothing to upload.")
+                    log.debug("Nothing to upload.")
                     return True
                 if deadline is not None and time.monotonic() >= deadline:
                     log.warning("Upload deadline reached; remaining entries kept.")

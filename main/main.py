@@ -112,7 +112,7 @@ def _clock_ready() -> bool:
     if is_clock_synchronized():
         return True
     if time.time() - _boot_time < CLOCK_SYNC_MAX_WAIT_SECONDS:
-        main_logger.info("Clock not synchronised yet; skipping this tick.")
+        main_logger.debug("Clock not synchronised yet; skipping this tick.")
         return False
     if not _clock_warning_logged:
         main_logger.warning(
@@ -136,7 +136,7 @@ def aggregate_once():
     if not FAKE_DEVICES and time.time() - _boot_time < (
         STARTUP_DELAY + AGGREGATOR_WARMUP_SECONDS
     ):
-        main_logger.info(
+        main_logger.debug(
             "Aggregator warmup window not elapsed yet; skipping this tick."
         )
         return
@@ -181,8 +181,11 @@ def aggregate_once():
         entry[role] = clean
         included.append(role)
 
+    # Per-tick lines are DEBUG: at INFO they would be ~3 journal entries a
+    # minute, each costing several KB of SD writes. Problems are logged at
+    # WARNING/ERROR, and the uploader logs a summary per upload.
     if not included:
-        main_logger.info(
+        main_logger.debug(
             f"No fresh/ready frames for aggregation window; dropped={dropped}"
         )
         return
@@ -192,10 +195,7 @@ def aggregate_once():
     except Exception as e:
         main_logger.error(f"Failed to store entry: {e}")
         return
-    if not FAKE_DEVICES:
-        main_logger.info(
-            f"Stored entry {seq} with roles: {included}; dropped={dropped}"
-        )
+    main_logger.debug(f"Stored entry {seq} with roles: {included}; dropped={dropped}")
 
 
 def upload_in_background():
