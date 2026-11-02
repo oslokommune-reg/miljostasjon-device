@@ -110,6 +110,15 @@ echo "Currently at: $(git rev-parse --short HEAD) — $(git log -1 --format=%s)"
 # lock makes every later fetch/pull fail, so the station stops updating.
 find .git -maxdepth 4 -name '*.lock' -mmin +5 -print -delete 2>/dev/null || true
 
+# Follow the checked-out branch (like older startup.sh versions did), so a
+# test station can track e.g. test-pi. New clones are on main. REPO_BRANCH
+# overrides; a detached HEAD falls back to main.
+if [ -z "${REPO_BRANCH:-}" ]; then
+    CURRENT_BRANCH="$(git symbolic-ref --short -q HEAD || true)"
+    BRANCH="${CURRENT_BRANCH:-main}"
+fi
+echo "Tracking branch: $BRANCH"
+
 # General housekeeping (runs regardless of pull result)
 sudo apt-get clean
 sudo systemctl daemon-reload
