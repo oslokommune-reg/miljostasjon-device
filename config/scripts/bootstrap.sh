@@ -38,10 +38,6 @@ sudo systemctl daemon-reload
 sudo systemctl enable $SERVICE_NAME.service
 sudo systemctl start $SERVICE_NAME.service
 
-# Add daily reboot to crontab
-echo "Setting up daily reboot..."
-(crontab -l 2>/dev/null; echo "0 2 * * * /sbin/shutdown -r now") | crontab -
-
 # # Get Teamviewer ID from file
 # source ./home/${USER}/teamviewer.env
 

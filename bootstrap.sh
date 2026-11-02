@@ -50,9 +50,6 @@ sudo systemctl start $SERVICE_NAME.service
 
 # (crontab -l 2>/dev/null; echo "@reboot /home/scripts/startup.sh") | crontab -
 
-# Add daily reboot
-(crontab -l 2>/dev/null; echo "0 2 * * * /sbin/shutdown -r now") | crontab -
-
 # Install latest version of Docker if not already installed
 if ! command -v docker &> /dev/null
 then

@@ -153,6 +153,19 @@ else
 fi
 
 # ------------------------------------------------------------
+# Remove the old daily-reboot cron job. Older images added
+# "0 2 * * * /sbin/shutdown -r now" to the user's crontab; it never worked
+# (non-root), and stations are now power-cycled via a Shelly relay instead.
+# ------------------------------------------------------------
+CRON_USER="$(stat -c %U "$SCRIPT_DIR")"
+for u in "$CRON_USER" root; do
+    if crontab -u "$u" -l 2>/dev/null | grep -q '/sbin/shutdown -r now'; then
+        crontab -u "$u" -l 2>/dev/null | grep -v '/sbin/shutdown -r now' | crontab -u "$u" -
+        echo "Removed daily-reboot cron job for $u."
+    fi
+done
+
+# ------------------------------------------------------------
 # Docker auto-cleanup (safe, cache-friendly)
 # ------------------------------------------------------------
 echo "Running docker cleanup..."
