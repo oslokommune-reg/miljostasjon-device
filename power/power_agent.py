@@ -105,7 +105,9 @@ def main() -> None:
             d = decide(schedule, datetime.now(timezone.utc), uptime(), clock_synced())
             reason, shutdown = d.reason, d.shutdown
 
-        if reason != last_reason:  # log changes only, to keep writes down
+        # Log changes only: every journal entry costs several KB of SD writes,
+        # so reasons must not contain changing values (e.g. uptime).
+        if reason != last_reason:
             log(reason)
             last_reason = reason
 

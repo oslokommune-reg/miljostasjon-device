@@ -121,7 +121,10 @@ def decide(
         # The wall clock cannot be trusted (no RTC). Fall back to uptime so we
         # still shut down cleanly before even the shortest window ends.
         if uptime >= schedule.unsynced_max_uptime:
-            return Decision(True, f"clock not synchronised after {uptime}")
+            return Decision(
+                True,
+                f"clock not synchronised within {schedule.unsynced_max_uptime} of uptime",
+            )
         return Decision(False, "waiting for clock synchronisation")
 
     end = current_window_end(schedule, now_utc)
@@ -135,5 +138,8 @@ def decide(
     # Booted outside every window (unexpected power, or relay and config out
     # of step). Stay up long enough to upload, then shut down.
     if uptime >= schedule.outside_window_grace:
-        return Decision(True, f"outside power windows for {uptime}")
+        return Decision(
+            True,
+            f"outside power windows longer than {schedule.outside_window_grace}",
+        )
     return Decision(False, "outside power windows; grace period running")

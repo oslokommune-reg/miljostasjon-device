@@ -58,6 +58,14 @@ class DecideTests(unittest.TestCase):
         self.assertFalse(decide(SCHED, now, timedelta(minutes=6), False).shutdown)
         self.assertTrue(decide(SCHED, now, timedelta(minutes=7), False).shutdown)
 
+    def test_reason_is_stable_while_state_is_unchanged(self):
+        # The agent logs only when the reason changes; a reason that contains
+        # the uptime would write a journal entry every check.
+        for now, synced in [(oslo(2026, 6, 1, 10, 0), True), (oslo(2026, 6, 1, 7, 10), False)]:
+            a = decide(SCHED, now, timedelta(minutes=20), synced).reason
+            b = decide(SCHED, now, timedelta(minutes=40), synced).reason
+            self.assertEqual(a, b)
+
     def test_unsynced_limit_fits_shortest_window(self):
         shortest = min(
             (datetime.combine(datetime.today(), w.end) - datetime.combine(datetime.today(), w.start))
