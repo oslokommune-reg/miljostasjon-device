@@ -9,10 +9,12 @@ export SCRIPT_PATH="/home/${USER}/scripts/startup.sh"
 # Make all scripts in ./scripts/ executable
 chmod u+x /home/${USER}/scripts/*.sh
 
-# Legg get_device_id på skrivebordet
+# Legg snarveier (CPU-ID og rebuild) på skrivebordet
 mkdir -p /home/${USER}/Desktop
-cp /home/${USER}/scripts/get_device_id.desktop /home/${USER}/Desktop/
-chmod +x /home/${USER}/Desktop/get_device_id.desktop
+for shortcut in get_device_id.desktop rebuild.desktop; do
+    cp /home/${USER}/scripts/${shortcut} /home/${USER}/Desktop/
+    chmod +x /home/${USER}/Desktop/${shortcut}
+done
 
 echo "Creating systemd service..."
 cat <<EOF | sudo -E tee /etc/systemd/system/$SERVICE_NAME.service
@@ -35,10 +37,6 @@ EOF
 sudo systemctl daemon-reload
 sudo systemctl enable $SERVICE_NAME.service
 sudo systemctl start $SERVICE_NAME.service
-
-# Add daily reboot to crontab
-echo "Setting up daily reboot..."
-(crontab -l 2>/dev/null; echo "0 2 * * * /sbin/shutdown -r now") | crontab -
 
 # # Get Teamviewer ID from file
 # source ./home/${USER}/teamviewer.env

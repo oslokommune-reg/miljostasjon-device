@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Bygg Docker på nytt
+Comment=Fjerner og bygger Docker-miljøet på nytt (rebuild.sh)
+Exec=bash -c '"$HOME/scripts/run_rebuild.sh"'
+Icon=view-refresh
+Terminal=true
+Categories=Utility;

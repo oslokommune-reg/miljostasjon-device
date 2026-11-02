@@ -78,6 +78,12 @@ fi
 # ------------------------------------------------------------
 BRANCH="${REPO_BRANCH:-main}"
 
+# Older images cloned the repo into ~/<repo> instead of ~/scripts/<repo>.
+# Reuse that clone if present, so those stations are not re-cloned.
+if [ ! -d "$REPO_NAME/.git" ] && [ -d "../$REPO_NAME/.git" ]; then
+    REPO_NAME="../$REPO_NAME"
+fi
+
 # Clone if the repo doesn't exist yet
 if [ ! -d "$REPO_NAME/.git" ]; then
     echo "Cloning $REPO_URL (branch $BRANCH)..."
@@ -98,6 +104,20 @@ git config --system --add safe.directory "$REPO_PATH" 2>/dev/null || true
 cd "$REPO_PATH" || { echo "ERROR: cannot cd into $REPO_PATH"; exit 1; }
 
 echo "Currently at: $(git rev-parse --short HEAD) — $(git log -1 --format=%s)"
+
+# Remove stale lock files left by a git process killed mid-operation
+# (power loss, reboot). Nothing else runs git at boot, and a leftover
+# lock makes every later fetch/pull fail, so the station stops updating.
+find .git -maxdepth 4 -name '*.lock' -mmin +5 -print -delete 2>/dev/null || true
+
+# Follow the checked-out branch (like older startup.sh versions did), so a
+# test station can track e.g. test-pi. New clones are on main. REPO_BRANCH
+# overrides; a detached HEAD falls back to main.
+if [ -z "${REPO_BRANCH:-}" ]; then
+    CURRENT_BRANCH="$(git symbolic-ref --short -q HEAD || true)"
+    BRANCH="${CURRENT_BRANCH:-main}"
+fi
+echo "Tracking branch: $BRANCH"
 
 # General housekeeping (runs regardless of pull result)
 sudo apt-get clean
@@ -131,6 +151,19 @@ else
     sudo -E docker compose build --pull
     sudo -E docker compose up -d --force-recreate --remove-orphans
 fi
+
+# ------------------------------------------------------------
+# Remove the old daily-reboot cron job. Older images added
+# "0 2 * * * /sbin/shutdown -r now" to the user's crontab; it never worked
+# (non-root), and stations are now power-cycled via a Shelly relay instead.
+# ------------------------------------------------------------
+CRON_USER="$(stat -c %U "$SCRIPT_DIR")"
+for u in "$CRON_USER" root; do
+    if crontab -u "$u" -l 2>/dev/null | grep -q '/sbin/shutdown -r now'; then
+        crontab -u "$u" -l 2>/dev/null | grep -v '/sbin/shutdown -r now' | crontab -u "$u" -
+        echo "Removed daily-reboot cron job for $u."
+    fi
+done
 
 # ------------------------------------------------------------
 # Docker auto-cleanup (safe, cache-friendly)

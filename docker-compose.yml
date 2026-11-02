@@ -3,6 +3,7 @@ services:
    build:
      context: ./
      dockerfile: prod.Dockerfile
+   image: miljostasjon-device-prod
    container_name: prod
    restart: always
    privileged: true
@@ -17,6 +18,19 @@ services:
      - API_GATEWAY_MILJOSTASJON_URL=${PROD_API_GATEWAY_MILJOSTASJON_URL}
      - SCHEDULE_SECONDS=300
    command: python3 main.py
+
+ # Engangsjobb ved hver oppstart: kopierer config/scripts og skrivebords-
+ # snarveier ut til verten, så stasjonene oppdateres via git (se scriptet).
+ host-sync:
+   image: miljostasjon-device-prod
+   pull_policy: never
+   container_name: host-sync
+   restart: "no"
+   volumes:
+     - ./config/scripts:/repo_scripts:ro
+     - ..:/repo_parent
+     - ../..:/repo_grandparent
+   entrypoint: ["sh", "/repo_scripts/sync_host_files.sh"]
 
   # dev:
   #   build:
