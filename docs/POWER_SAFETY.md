@@ -90,7 +90,11 @@ Never on a production station: the test uses synthetic data and crashes the Pi.
 1. Install as above, then set test-only overrides:
    ```bash
    echo "POWER_AGENT_ARGS=--dry-run" | sudo tee /etc/default/miljostasjon-power
-   echo "FAKE_DEVICES=1" >> ~/prod.env   # synthetic data, one write per second, uploads off
+   # synthetic data, one write per second, uploads off.
+   # sed adds a missing final newline first; otherwise the line is glued
+   # onto the last variable (the API URL) and breaks it.
+   sudo sed -i -e '$a\' ~/prod.env
+   echo "FAKE_DEVICES=1" | sudo tee -a ~/prod.env >/dev/null
    sudo reboot
    ```
 2. Unit tests (on the Pi or any machine with Python 3.11):
