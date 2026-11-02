@@ -78,6 +78,12 @@ fi
 # ------------------------------------------------------------
 BRANCH="${REPO_BRANCH:-main}"
 
+# Older images cloned the repo into ~/<repo> instead of ~/scripts/<repo>.
+# Reuse that clone if present, so those stations are not re-cloned.
+if [ ! -d "$REPO_NAME/.git" ] && [ -d "../$REPO_NAME/.git" ]; then
+    REPO_NAME="../$REPO_NAME"
+fi
+
 # Clone if the repo doesn't exist yet
 if [ ! -d "$REPO_NAME/.git" ]; then
     echo "Cloning $REPO_URL (branch $BRANCH)..."
@@ -98,6 +104,11 @@ git config --system --add safe.directory "$REPO_PATH" 2>/dev/null || true
 cd "$REPO_PATH" || { echo "ERROR: cannot cd into $REPO_PATH"; exit 1; }
 
 echo "Currently at: $(git rev-parse --short HEAD) — $(git log -1 --format=%s)"
+
+# Remove stale lock files left by a git process killed mid-operation
+# (power loss, reboot). Nothing else runs git at boot, and a leftover
+# lock makes every later fetch/pull fail, so the station stops updating.
+find .git -maxdepth 4 -name '*.lock' -mmin +5 -print -delete 2>/dev/null || true
 
 # General housekeeping (runs regardless of pull result)
 sudo apt-get clean

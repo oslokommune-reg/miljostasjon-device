@@ -28,7 +28,8 @@ services:
    restart: "no"
    volumes:
      - ./config/scripts:/repo_scripts:ro
-     - ../..:/host_home
+     - ..:/repo_parent
+     - ../..:/repo_grandparent
    entrypoint: ["sh", "/repo_scripts/sync_host_files.sh"]
 
   # dev:
